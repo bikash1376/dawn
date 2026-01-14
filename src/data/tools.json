@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Calculate",
+    "description": "Perform mathematical calculations and solve equations."
+  },
+  {
+    "name": "Weather",
+    "description": "Get real-time weather information for any location."
+  },
+  {
+    "name": "Web Search",
+    "description": "Search the internet for the latest information and news."
+  },
+  {
+    "name": "PDF Generator",
+    "description": "Create professional PDF documents from text content."
+  },
+  {
+    "name": "Invoice Generator",
+    "description": "Generate beautifully designed invoices for your business."
+  }
+]
