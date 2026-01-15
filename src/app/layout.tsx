@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   description: "AI Chatbot with tools and integrations",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

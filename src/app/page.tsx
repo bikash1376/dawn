@@ -135,7 +135,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased">
+    <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans antialiased">
       {/* Static Sidebar */}
       <AnimatePresence mode="wait">
         {isSidebarOpen && (
@@ -262,7 +262,7 @@ export default function ChatPage() {
         {/* Chat Area */}
         <main className="flex-1 overflow-hidden relative flex flex-col">
           <ScrollArea className="flex-1">
-            <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6 pb-40">
+            <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
               {messages.map((m: Message) => (
                 <motion.div
                   key={m.id}
@@ -361,7 +361,7 @@ export default function ChatPage() {
                     })}
 
                     {m.content && (
-                      <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-zinc-950">
+                      <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-muted">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {m.content}
                         </ReactMarkdown>
@@ -399,7 +399,7 @@ export default function ChatPage() {
         </main>
 
         {/* Unified Input Area */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-10">
+        <div className="w-full p-4 bg-background pt-2 z-20 shrink-0">
           <div className="max-w-2xl mx-auto relative flex flex-col gap-2 bg-secondary/20 backdrop-blur-md border border-border/30 rounded-xl p-2 transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/5 shadow-2xl">
             <form
               onSubmit={(e) => {
@@ -431,7 +431,7 @@ export default function ChatPage() {
                   <SelectTrigger className="w-auto h-7 bg-transparent border-none text-[11px] font-medium text-muted-foreground/70 hover:bg-secondary/50 rounded-md transition-colors px-2 gap-1 focus:ring-0">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-border/40 shadow-2xl">
+                  <SelectContent className="bg-popover border-border/40 shadow-2xl">
                     {MODELS.map((model) => (
                       <SelectItem
                         key={model.id}
@@ -483,9 +483,9 @@ export default function ChatPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-zinc-950 border border-border/40 rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-lg bg-popover border border-border/40 rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between p-4 border-b border-border/40 bg-zinc-900/50">
+              <div className="flex items-center justify-between p-4 border-b border-border/40 bg-muted/50">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   {activeModal === 'tools' && <Wrench className="w-4 h-4" />}
                   {activeModal === 'integrations' && <Puzzle className="w-4 h-4" />}
@@ -525,8 +525,8 @@ export default function ChatPage() {
                               key={item.id}
                               variant={theme === item.id ? 'default' : 'outline'}
                               className={cn(
-                                "flex flex-col items-center gap-2 h-20 bg-zinc-900",
-                                theme === item.id ? "bg-primary text-primary-foreground" : "border-border/40 hover:bg-zinc-800"
+                                "flex flex-col items-center gap-2 h-20 bg-muted/50",
+                                theme === item.id ? "bg-primary text-primary-foreground" : "border-border/40 hover:bg-muted"
                               )}
                               onClick={() => setTheme(item.id as any)}
                             >
@@ -538,7 +538,7 @@ export default function ChatPage() {
                       </div>
                       <div className="pt-4 border-t border-border/40 space-y-4">
                         <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">General</label>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-900 border border-border/40">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/40">
                           <span className="text-xs font-medium">Clear Conversations</span>
                           <Button variant="ghost" size="sm" onClick={clearChat} className="text-destructive h-7 px-3 text-[10px] font-bold uppercase hover:bg-destructive/10">Delete All</Button>
                         </div>
