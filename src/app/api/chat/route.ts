@@ -3,7 +3,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
 import { createDeepInfra } from '@ai-sdk/deepinfra';
 import { streamText } from 'ai';
-import { calculate, weather, webSearch, pdfGenerator, invoiceGenerator } from '@/lib/tools';
+import { calculate, weather, webSearch, pdfGenerator, invoiceGenerator, screenshot, portfolio, landingPageGenerator, deleteLandingPage } from '@/lib/tools';
 
 export async function POST(req: Request) {
     try {
@@ -55,6 +55,9 @@ export async function POST(req: Request) {
             - Invoice: if a user says "tak 21" for an invoice number, interpret it as "take 21" or "INV-21".
             - Weather: if a user says "weathr in newyrok", interpret as "weather in New York".
             - General: fix typos like "calcualte" to "calculate" or "serch" to "search" before calling tools.
+            - Landing Page: If the user requests to create or deploy a landing page, website, or app, YOU must first generate the full HTML, CSS, and JS code yourself based on their description, and then pass it to the landingPageGenerator tool. Do NOT ask the user to provide the code.
+            - Updates: If the user wants to update the site, ask for what changes they want. If they provide comments, use the previous \`siteId\` (from the tool result) to call \`landingPageGenerator\` again with the new code and the \`siteId\`.
+            - Deletion: If the user wants to delete the site, use the \`deleteLandingPage\` tool with the \`siteId\`.
             If a task does not require a tool, simply answer like a helpful AI assistant.
             Always strive to provide the most professional and accurate results possible.`,
             messages,
@@ -63,7 +66,11 @@ export async function POST(req: Request) {
                 weather,
                 webSearch,
                 pdfGenerator,
-                invoiceGenerator
+                invoiceGenerator,
+                screenshot,
+                portfolio,
+                landingPageGenerator,
+                deleteLandingPage
             },
         });
 

@@ -21,7 +21,13 @@ import {
   Moon,
   Sun,
   Monitor,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  Camera,
+  Briefcase,
+  Rocket,
+  ExternalLink,
+  Trash
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import toolsData from '@/data/tools.json';
@@ -56,6 +62,7 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Theme effect
   useEffect(() => {
@@ -126,6 +133,10 @@ export default function ChatPage() {
         case 'webSearch': return 'Searching the web...';
         case 'pdfGenerator': return 'Generating PDF...';
         case 'invoiceGenerator': return 'Designing invoice...';
+        case 'screenshot': return 'Taking screenshot...';
+        case 'portfolio': return 'Generating portfolio...';
+        case 'landingPageGenerator': return 'Deploying landing page...';
+        case 'deleteLandingPage': return 'Deleting site...';
         default: return `Using ${ongoingTool.toolName}...`;
       }
     }
@@ -153,11 +164,11 @@ export default function ChatPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -260, opacity: 0 }}
               transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-              className="fixed lg:relative z-50 h-full w-[260px] border-r border-border/40 bg-background flex flex-col shrink-0"
+              className="fixed z-50 h-full w-[260px] border-r border-border/40 bg-background flex flex-col shrink-0"
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-sm font-bold tracking-tight px-2 uppercase tracking-[0.2em] opacity-40">History</span>
+                  <span className="text-sm font-bold tracking-tight px-2 uppercase tracking-[0.2em] opacity-40">Dropdawn</span>
                   <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)} className="h-8 w-8 hover:bg-secondary">
                     <X className="w-4 h-4" />
                   </Button>
@@ -252,7 +263,11 @@ export default function ChatPage() {
               </Button>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight">Dropdawn</span>
+              {isSidebarOpen ? (
+                <span></span>
+              ) : (
+                <span className="text-sm font-semibold tracking-tight">Dropdawn</span>
+              )}
               {/* <div className="h-4 w-[1px] bg-border/40 mx-2" />
               <span className="text-xs text-muted-foreground uppercase tracking-widest">{selectedModel.name}</span> */}
             </div>
@@ -290,6 +305,10 @@ export default function ChatPage() {
                           case 'webSearch': return <Search className="w-3 h-3" />;
                           case 'pdfGenerator': return <FileText className="w-3 h-3" />;
                           case 'invoiceGenerator': return <Receipt className="w-3 h-3" />;
+                          case 'screenshot': return <Camera className="w-3 h-3" />;
+                          case 'portfolio': return <Briefcase className="w-3 h-3" />;
+                          case 'landingPageGenerator': return <Rocket className="w-3 h-3" />;
+                          case 'deleteLandingPage': return <Trash className="w-3 h-3" />;
                           default: return <Calculator className="w-3 h-3" />;
                         }
                       };
@@ -341,6 +360,55 @@ export default function ChatPage() {
                                       Download PDF
                                     </Button>
                                   )}
+                                </div>
+                              ) : toolName === 'screenshot' ? (
+                                <div className="relative rounded-lg overflow-hidden border border-border/40 bg-secondary/20">
+                                  {result.image ? (
+                                    <img src={result.image} alt="Screenshot" className="w-full h-auto block" />
+                                  ) : (
+                                    <div className="p-4 text-xs text-destructive">No image data returned</div>
+                                  )}
+                                </div>
+                              ) : toolName === 'portfolio' ? (
+                                <details className="group">
+                                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground list-none flex items-center gap-2 select-none">
+                                    <span>View Portfolio Details</span>
+                                    <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+                                  </summary>
+                                  <div className="mt-2 p-3 bg-secondary/10 rounded-md border border-border/20 text-sm space-y-1">
+                                    <div className="font-bold">URL: <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{result.url}</a></div>
+                                    <div className="text-muted-foreground">{result.info}</div>
+                                    {result.twitter && <div>Twitter: <a href={result.twitter} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">{result.twitter}</a></div>}
+                                  </div>
+                                </details>
+                              ) : toolName === 'landingPageGenerator' ? (
+                                <div className="space-y-2">
+                                  <div className="font-medium text-green-500">{result.message}</div>
+                                  {result.siteUrl && (
+                                    <div className="flex flex-col gap-1">
+                                      <a href={result.siteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold flex items-center gap-1">
+                                        {result.siteUrl} <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                      {result.adminUrl && (
+                                        <a href={result.adminUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground">
+                                          Manage Site
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+                                  {result.error && <div className="text-destructive font-bold">{result.error}</div>}
+                                </div>
+                              ) : toolName === 'deleteLandingPage' ? (
+                                <div className="space-y-1">
+                                  {result.error ? (
+                                    <div className="font-medium text-destructive">{result.error}</div>
+                                  ) : (
+                                    <div className="font-medium text-destructive flex items-center gap-2">
+                                      <Trash className="w-3 h-3" />
+                                      {result.message}
+                                    </div>
+                                  )}
+                                  {result.siteId && <div className="text-xs text-muted-foreground">ID: {result.siteId}</div>}
                                 </div>
                               ) : (
                                 <pre className="text-[10px] overflow-auto max-h-40 p-2 bg-secondary/20 rounded">
@@ -477,7 +545,7 @@ export default function ChatPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActiveModal(null)}
-              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-background/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -485,7 +553,7 @@ export default function ChatPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-lg bg-popover border border-border/40 rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between p-4 border-b border-border/40 bg-muted/50">
+              <div className="flex items-center justify-between p-4 border-b border-border/40 bg-muted/40">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   {activeModal === 'tools' && <Wrench className="w-4 h-4" />}
                   {activeModal === 'integrations' && <Puzzle className="w-4 h-4" />}
@@ -502,7 +570,16 @@ export default function ChatPage() {
                 <ScrollArea className="h-[300px] pr-4">
                   {activeModal === 'tools' ? (
                     <div className="space-y-6">
-                      {toolsData.map((tool, i) => (
+                      <Input
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none focus:shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-md placeholder:text-muted-foreground/50"
+                        placeholder="Search tools"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+
+                      {toolsData.filter((tool) =>
+                        tool.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map((tool, i) => (
                         <div key={i} className="flex flex-col gap-1">
                           <h4 className="text-sm font-bold text-foreground">{tool.name}</h4>
                           <p className="text-[13px] text-muted-foreground leading-relaxed">
@@ -568,6 +645,6 @@ export default function ChatPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 }

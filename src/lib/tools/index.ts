@@ -3,3 +3,7 @@ export * from './weather';
 export * from './websearch';
 export * from './pdf';
 export * from './invoice';
+export * from './screenshot';
+export * from './portfolio';
+export * from './landing-page';
+export * from './delete-landing-page';

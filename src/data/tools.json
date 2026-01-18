@@ -18,5 +18,21 @@
   {
     "name": "Invoice Generator",
     "description": "Generate beautifully designed invoices for your business."
+  },
+  {
+    "name": "Screenshot",
+    "description": "Take a screenshot of a given URL."
+  },
+  {
+    "name": "Portfolio",
+    "description": "Generate a portfolio URL from a GitHub username."
+  },
+  {
+    "name": "Landing Page Generator",
+    "description": "Generate and deploy a landing page to Netlify. Can also update existing sites."
+  },
+  {
+    "name": "Delete Landing Page",
+    "description": "Delete a deployed landing page from Netlify."
   }
 ]
