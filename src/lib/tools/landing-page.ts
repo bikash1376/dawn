@@ -83,15 +83,34 @@ export const landingPageGenerator = tool({
             const zip = new JSZip();
 
             // Add HTML. Ensure it links to style.css and script.js if they are provided but not linked.
-            zip.file("index.html", html);
+            // Add HTML. Ensure it links to style.css and script.js if they are provided but not linked.
+            let finalHtml = html;
 
             if (css) {
                 zip.file("style.css", css);
+                if (!finalHtml.includes('style.css')) {
+                    if (finalHtml.includes('</head>')) {
+                        finalHtml = finalHtml.replace('</head>', '    <link rel="stylesheet" href="style.css">\n</head>');
+                    } else {
+                        // Fallback: prepend
+                        finalHtml = `<link rel="stylesheet" href="style.css">\n` + finalHtml;
+                    }
+                }
             }
 
             if (js) {
                 zip.file("script.js", js);
+                if (!finalHtml.includes('script.js')) {
+                    if (finalHtml.includes('</body>')) {
+                        finalHtml = finalHtml.replace('</body>', '    <script src="script.js"></script>\n</body>');
+                    } else {
+                        // Fallback: append
+                        finalHtml = finalHtml + `\n<script src="script.js"></script>`;
+                    }
+                }
             }
+
+            zip.file("index.html", finalHtml);
 
             const zipContent = await zip.generateAsync({ type: "nodebuffer" });
 

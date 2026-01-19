@@ -492,7 +492,7 @@ export default function ChatPage() {
                 placeholder={isLoading ? "Please wait..." : "Ask me something or use tools..."}
                 minRows={1}
                 maxRows={6}
-                className="w-full border-none focus:outline-none bg-transparent py-3 px-3 text-sm shadow-none placeholder:text-muted-foreground/50 disabled:opacity-50 resize-none flex-1 overflow-hidden leading-relaxed"
+                className="w-full border-none focus:outline-none bg-transparent py-3 px-3 text-sm shadow-none placeholder:text-muted-foreground/50 disabled:opacity-50 resize-none flex-1 overflow-y-auto custom-scrollbar leading-relaxed"
               />
               <div className="flex items-center justify-between px-2 pt-1 border-t border-border/10">
                 <Select value={selectedModel.id} onValueChange={handleModelChange}>

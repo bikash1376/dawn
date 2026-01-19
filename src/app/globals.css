@@ -124,3 +124,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Scrollbar Utilities */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Show scrollbar on hover of the container */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+/* Ensure code blocks scroll horizontally on mobile */
+/* We target pre tags inside prose or generic pre tags */
+.prose pre {
+  overflow-x: auto;
+  max-width: 100%;
+  white-space: pre; /* Ensure code doesn't wrap weirdly if we want scroll */
+}

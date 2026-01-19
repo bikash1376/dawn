@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dropdawn - New",
+  title: "Dropdawn",
   description: "AI Chatbot with tools and integrations",
+  icons: {
+    icon: "/dropdawn.jpg",
+    shortcut: "/dropdawn.jpg",
+    apple: "/dropdawn.jpg",
+  },
 };
 
 export const viewport = {
