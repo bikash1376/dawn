@@ -488,8 +488,8 @@ export default function ChatPage() {
                     }
                   }
                 }}
-                disabled={isLoading}
-                placeholder={isLoading ? "Please wait..." : "Ask me something or use tools..."}
+                disabled={isLoading || !!selectedModel.locked}
+                placeholder={isLoading ? "Please wait..." : (selectedModel.locked ? "This model is currently unavailable." : "Ask me something or use tools...")}
                 minRows={1}
                 maxRows={6}
                 className="w-full border-none focus:outline-none bg-transparent py-3 px-3 text-sm shadow-none placeholder:text-muted-foreground/50 disabled:opacity-50 resize-none flex-1 overflow-y-auto custom-scrollbar leading-relaxed"
@@ -519,10 +519,10 @@ export default function ChatPage() {
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || isLoading || !!selectedModel.locked}
                   className={cn(
                     "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
-                    input.trim() ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
+                    (input.trim() && !selectedModel.locked) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
                   )}
                 >
                   <Send className="w-3.5 h-3.5" />
