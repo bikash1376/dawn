@@ -48,7 +48,7 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: process.env.NODE_ENV === 'development' ? true : false },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', locked: true },
   { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral', locked: true },
   { id: 'command-r-plus', name: 'Cohere Command R+', provider: 'Cohere', locked: true },
@@ -168,7 +168,7 @@ export default function ChatPage() {
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-sm font-bold tracking-tight px-2 uppercase tracking-[0.2em] opacity-40">Dropdawn</span>
+                  <span className="text-sm tracking-wider px-2 font-serif opacity-40">dropdawn</span>
                   <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)} className="h-8 w-8 hover:bg-secondary">
                     <X className="w-4 h-4" />
                   </Button>
@@ -266,7 +266,7 @@ export default function ChatPage() {
               {isSidebarOpen ? (
                 <span></span>
               ) : (
-                <span className="text-sm font-semibold tracking-tight">Dropdawn</span>
+                <span className="text-sm font-normal tracking-wider font-serif">dropdawn</span>
               )}
               {/* <div className="h-4 w-[1px] bg-border/40 mx-2" />
               <span className="text-xs text-muted-foreground uppercase tracking-widest">{selectedModel.name}</span> */}
