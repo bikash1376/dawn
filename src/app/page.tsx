@@ -48,7 +48,8 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_UNLOCK_MODELS === 'true' ? false : true },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', provider: 'Google', locked: false },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', locked: true },
   { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral', locked: true },
   { id: 'command-r-plus', name: 'Cohere Command R+', provider: 'Cohere', locked: true },
