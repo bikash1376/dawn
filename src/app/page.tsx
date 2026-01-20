@@ -46,13 +46,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const MODELS = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
   { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', provider: 'Google', locked: true },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', locked: true },
-  { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral', locked: true },
-  { id: 'command-r-plus', name: 'Cohere Command R+', provider: 'Cohere', locked: true },
+  { id: 'mistral-small', name: 'Mistral Small', provider: 'Mistral', locked: false },
+  { id: 'command-light', name: 'Cohere Command Light', provider: 'Cohere', locked: false },
   { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', name: 'Llama 3.3 70B (DeepInfra)', provider: 'DeepInfra', locked: true },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', locked: true },
   { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', locked: true },
@@ -534,9 +535,11 @@ export default function ChatPage() {
               </div>
             </form>
           </div>
-          <p className="mt-3 text-center text-[10px] text-muted-foreground/40 tracking-widest font-medium uppercase">
-            DROPDAWN • TOOL ENABLED
-          </p>
+          <Link href="https://x.com/bikash1376" target="_blank">
+            <p className="mt-3 text-center text-[10px] text-muted-foreground/50 tracking-widest font-medium uppercase">
+              Created by <span className="text-muted-foreground/80">Bikash</span>
+            </p>
+          </Link>
         </div>
       </div>
 

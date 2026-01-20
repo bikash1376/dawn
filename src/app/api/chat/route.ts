@@ -38,12 +38,12 @@ const PROMPT = `You are Dropdawn, a powerful and intelligent AI assistant.
             const apiKey = process.env.MISTRAL_API_KEY;
             if (!apiKey) throw new Error('MISTRAL_API_KEY is missing');
             const mistral = createMistral({ apiKey });
-            aiModel = mistral(model || 'mistral-large-latest');
+            aiModel = mistral(model || 'mistral-small');
         } else if (provider === 'Cohere') {
             const apiKey = process.env.COHERE_API_KEY;
             if (!apiKey) throw new Error('COHERE_API_KEY is missing');
             const cohere = createCohere({ apiKey });
-            aiModel = cohere(model || 'command-r-plus');
+            aiModel = cohere(model || 'command-light');
         } else if (provider === 'DeepInfra') {
             const apiKey = process.env.DEEPINFRA_API_KEY;
             if (!apiKey) throw new Error('DEEPINFRA_API_KEY is missing');
