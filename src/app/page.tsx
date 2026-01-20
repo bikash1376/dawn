@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 
 const MODELS = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', provider: 'Google', locked: false },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', provider: 'Google', locked: true },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', locked: true },
   { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral', locked: true },
   { id: 'command-r-plus', name: 'Cohere Command R+', provider: 'Cohere', locked: true },
@@ -115,7 +115,7 @@ export default function ChatPage() {
   };
 
   const clearChat = () => {
-    setMessages([{ id: 'welcome', role: 'assistant', content: "How can I help you today?" }]);
+    setMessages([{ id: 'welcome', role: 'assistant', content: '' }]);
   };
 
   const getStatusMessage = () => {
@@ -430,7 +430,10 @@ export default function ChatPage() {
                     })}
 
                     {m.content && (
-                      <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-muted">
+                      <div className={cn(
+                        "prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-muted",
+                        m.id === 'welcome' && "[&_p]:text-2xl [&_p]:font-light [&_p]:font-serif"
+                      )}>
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {m.content}
                         </ReactMarkdown>
