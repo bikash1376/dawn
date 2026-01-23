@@ -4,11 +4,12 @@ import { createCohere } from '@ai-sdk/cohere';
 import { createDeepInfra } from '@ai-sdk/deepinfra';
 import { streamText } from 'ai';
 import { calculate, weather, webSearch, pdfGenerator, invoiceGenerator, screenshot, portfolio, landingPageGenerator, deleteLandingPage } from '@/lib/tools';
+import { createClient } from '@/lib/supabase/server';
 import css from 'styled-jsx/css';
 
 export async function POST(req: Request) {
 
-const PROMPT = `You are Dropdawn, a powerful and intelligent AI assistant. 
+    const PROMPT = `You are Dropdawn, a powerful and intelligent AI assistant. 
             You are capable of performing a wide range of tasks, including answering general questions, writing code, creative writing, and explaining complex concepts.
             You ALSO have access to professional tools like invoice generation, PDF creation, web search, and weather.
             Use tools when they are specifically needed or requested to enhance your answer.
@@ -31,6 +32,44 @@ const PROMPT = `You are Dropdawn, a powerful and intelligent AI assistant.
 
     try {
         const { messages, model, provider } = await req.json();
+
+        // Auth & Rate Limiting Check
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return new Response(JSON.stringify({ error: 'Unauthorized: Please sign in to chat.' }), { status: 401 });
+        }
+
+        // Rate Limit (5 messages per 12 hours)
+        const TWELVE_HOURS_AGO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+
+        // Complex query: Get this user's messages created > 12h ago
+        // Since we can't easily join in one simple API call without being an admin or having specific views,
+        // we'll do a slightly heavier but functional 2-step check or a filtered select on the 'messages' table 
+        // IF we have RLS that allows reading *own* messages. (We do).
+        // BUT 'messages' table doesn't have 'user_id' directly, it has 'conversation_id'. 
+        // We first find active conversations or just trust the RLS policies.
+
+        // Step 1: Get user's conversation IDs used in last 12h (optimization)
+        const { data: recentConversations } = await supabase
+            .from('conversations')
+            .select('id')
+            .eq('user_id', user.id);
+
+        if (recentConversations && recentConversations.length > 0) {
+            const conversationIds = recentConversations.map(c => c.id);
+            const { count, error: countError } = await supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .in('conversation_id', conversationIds)
+                .eq('role', 'user') // Count only user messages
+                .gt('created_at', TWELVE_HOURS_AGO);
+
+            if (count !== null && count >= 5) {
+                return new Response(JSON.stringify({ error: 'Rate limit exceeded: You can only send 5 messages every 12 hours.' }), { status: 429 });
+            }
+        }
 
         let aiModel;
 
