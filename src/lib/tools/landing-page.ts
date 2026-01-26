@@ -51,8 +51,8 @@ async function resolveSiteId(token: string, identifier: string): Promise<string 
     return null;
 }
 
-export const landingPageGenerator = tool({
-    description: 'Generate and deploy a landing page to Netlify based on HTML, CSS, and JS. Use siteId to update an existing site.',
+export const staticSiteGenerator = tool({
+    description: 'Generate and deploy a STATIC landing page or site to Netlify (HTML/CSS/JS). Use "fullStackAppGenerator" for apps with backend logic.',
     parameters: z.object({
         html: z.string().describe('The full HTML content of the landing page, including <head> and <body>.'),
         css: z.string().optional().describe('The CSS styles for the landing page.'),
@@ -175,7 +175,7 @@ export const landingPageGenerator = tool({
             }
 
             return {
-                message: targetSiteId ? 'Landing page updated successfully!' : 'Landing page deployed successfully!',
+                message: targetSiteId ? 'Static site updated successfully!' : 'Static site deployed successfully!',
                 siteUrl: siteUrl,
                 siteName: siteName,
                 adminUrl: adminUrl,

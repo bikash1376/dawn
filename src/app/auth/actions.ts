@@ -57,6 +57,15 @@ export async function signup(formData: FormData) {
         return { error: error.message }
     }
 
+    // Create profile immediately to satisfy FK constraints if triggers are missing
+    if (data.user) {
+        await supabase.from('profiles').upsert({
+            id: data.user.id,
+            full_name: fullName,
+            email: email
+        });
+    }
+
     // Do not revalidate or redirect yet, let modal handle the "Check Email" state
     return { success: true }
 }

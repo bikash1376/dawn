@@ -29,7 +29,8 @@ import {
   ExternalLink,
   Trash,
   User as UserIcon,
-  LogOut
+  LogOut,
+  HourglassIcon
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import toolsData from '@/data/tools.json';
@@ -78,6 +79,9 @@ export default function ChatPage() {
   const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [isTemporaryMode, setIsTemporaryMode] = useState(false);
+  const [temporaryCount, setTemporaryCount] = useState(0);
 
   // Auth & DB State
   const [user, setUser] = useState<any>(null);
@@ -167,6 +171,7 @@ export default function ChatPage() {
     body: {
       model: selectedModel.id,
       provider: selectedModel.provider,
+      isTemporary: isTemporaryMode
     },
     maxSteps: 5, // Enable multi-step for tool calls
     initialMessages: [
@@ -177,6 +182,11 @@ export default function ChatPage() {
       },
     ],
     onFinish: async (message) => {
+      if (isTemporaryMode) {
+        setTemporaryCount(prev => prev + 1);
+        return; // Don't save to DB
+      }
+
       if (!user) return; // Don't save if not logged in
 
       try {
@@ -193,12 +203,45 @@ export default function ChatPage() {
             .single();
 
           if (convError || !convData) {
-            console.error('Failed to create conversation', JSON.stringify(convError, null, 2));
-            // Try to recover user session if it's an RLS issue
-            if (convError?.code === '42501' || convError?.message?.includes('security')) {
-              console.warn('RLS Error detected. Check if user is authenticated properly.');
+            // Handle missing profile error (FK violation)
+            if (convError?.code === '23503') {
+              console.log('Profile missing, creating one...');
+              const { error: profileError } = await supabase.from('profiles').upsert({
+                id: user.id,
+                full_name: user.user_metadata?.full_name || 'User',
+                email: user.email, // Common field, worth trying. If it fails, we might need a fallback, but usually schema has this or allows nulls if not present.
+                avatar_url: user.user_metadata?.avatar_url
+              });
+
+              if (profileError) {
+                console.error('Failed to create profile:', profileError);
+                // Fallback: try minimal insert if email/avatar causes issues
+                await supabase.from('profiles').insert({ id: user.id });
+              }
+
+              // Retry conversation creation
+              const { data: retryData, error: retryError } = await supabase
+                .from('conversations')
+                .insert({ user_id: user.id, title })
+                .select()
+                .single();
+
+              if (retryError || !retryData) {
+                console.error('Failed to create conversation after profile fix', retryError);
+                return;
+              }
+
+              conversationId = retryData.id;
+              setCurrentConversationId(conversationId);
+              loadConversations();
+            } else {
+              console.error('Failed to create conversation', JSON.stringify(convError, null, 2));
+              // Try to recover user session if it's an RLS issue
+              if (convError?.code === '42501' || convError?.message?.includes('security')) {
+                console.warn('RLS Error detected. Check if user is authenticated properly.');
+              }
+              return;
             }
-            return;
           }
           conversationId = convData.id;
           setCurrentConversationId(conversationId);
@@ -262,9 +305,19 @@ export default function ChatPage() {
     setCurrentConversationId(null);
     setMessages([{ id: 'welcome', role: 'assistant', content: 'How can I help you today?' }]);
     inputRef.current = '';
+    setIsTemporaryMode(false);
+    setTemporaryCount(0);
+  };
+
+  const startTemporaryChat = () => {
+    clearChat();
+    setIsTemporaryMode(true);
+    setMessages([{ id: 'temp-welcome', role: 'assistant', content: 'You are in Temporary Mode. You have 3 messages available. Chats are not saved.' }]);
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
   const handleSelectConversation = (convId: string) => {
+    setIsTemporaryMode(false);
     setCurrentConversationId(convId);
     loadMessages(convId);
     // Close sidebar on mobile if needed
@@ -274,6 +327,10 @@ export default function ChatPage() {
   // Custom submit wrapper to capture input
   const onFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isTemporaryMode && temporaryCount >= 3) {
+      // Prevent submit
+      return;
+    }
     inputRef.current = input; // Capture input before it clears
     handleSubmit(e);
   };
@@ -337,12 +394,25 @@ export default function ChatPage() {
 
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2 text-xs h-9 bg-secondary/50 border-border/40"
+                  className="w-full justify-start gap-2 text-xs mb-4 h-9 bg-secondary/50 border-border/40 cursor-pointer"
                   onClick={clearChat}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   New Chat
                 </Button>
+
+
+                {/* <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start gap-2 text-xs mb-4 h-9 border-border/40 cursor-pointer",
+                    isTemporaryMode ? "bg-primary/20 text-primary border-primary/20" : "bg-secondary/50"
+                  )}
+                  onClick={startTemporaryChat}
+                >
+                  <HourglassIcon className="w-3.5 h-3.5" />
+                  Temporary Chat
+                </Button> */}
 
                 <ScrollArea className="flex-1 mt-4">
                   <div className="space-y-1">
@@ -467,6 +537,11 @@ export default function ChatPage() {
               )}
             </div>
           </div>
+          {isTemporaryMode && (
+            <div className="text-[10px] font-medium px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20 animate-pulse">
+              Temporary Mode: {3 - temporaryCount} left
+            </div>
+          )}
         </header>
 
         {/* Chat Area */}
@@ -654,7 +729,7 @@ export default function ChatPage() {
                   </div>
                 </motion.div>
               )}
-              {error && (
+              {error && !error.message?.includes('Rate limit') && (
                 <div className="p-3 text-xs border border-destructive/50 text-destructive bg-destructive/5 rounded-lg max-w-md">
                   {error.message || 'An error occurred.'}
                 </div>
@@ -684,13 +759,16 @@ export default function ChatPage() {
               <TextareaAutosize
                 value={input}
                 onChange={handleInputChange}
-                onClick={() => !user && setActiveModal('auth')}
-                onFocus={() => !user && setActiveModal('auth')}
+                onClick={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
+                onFocus={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (!user) {
+                    if (!user && !isTemporaryMode) {
                       setActiveModal('auth');
+                      return;
+                    }
+                    if (isTemporaryMode && temporaryCount >= 3) {
                       return;
                     }
                     if (input.trim() && !isLoading) {
@@ -699,11 +777,13 @@ export default function ChatPage() {
                     }
                   }
                 }}
-                disabled={isLoading || !!selectedModel.locked}
+                disabled={isLoading || !!selectedModel.locked || (isTemporaryMode && temporaryCount >= 3)}
                 placeholder={
-                  !user
+                  !user && !isTemporaryMode
                     ? "Please sign in to start chatting..."
-                    : (isLoading ? "Please wait..." : (selectedModel.locked ? "This model is currently unavailable." : "Ask me something or use tools..."))
+                    : (isTemporaryMode && temporaryCount >= 3
+                      ? "Temporary limit reached. Please sign in."
+                      : (isLoading ? "Please wait..." : (selectedModel.locked ? "This model is currently unavailable." : "Ask me something or use tools...")))
                 }
                 minRows={1}
                 maxRows={6}
@@ -737,10 +817,10 @@ export default function ChatPage() {
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!input.trim() || isLoading || !!selectedModel.locked || !user || (error?.message?.includes('Rate limit') ?? false)}
+                  disabled={!input.trim() || isLoading || !!selectedModel.locked || (!user && !isTemporaryMode) || (error?.message?.includes('Rate limit') ?? false) || (isTemporaryMode && temporaryCount >= 3)}
                   className={cn(
                     "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
-                    (input.trim() && !selectedModel.locked && user) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
+                    (input.trim() && !selectedModel.locked && (user || isTemporaryMode)) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
                   )}
                 >
                   <Send className="w-3.5 h-3.5" />

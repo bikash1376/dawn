@@ -3,7 +3,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
 import { createDeepInfra } from '@ai-sdk/deepinfra';
 import { streamText } from 'ai';
-import { calculate, weather, webSearch, pdfGenerator, invoiceGenerator, screenshot, portfolio, landingPageGenerator, deleteLandingPage } from '@/lib/tools';
+import { calculate, weather, webSearch, pdfGenerator, invoiceGenerator, screenshot, portfolio, staticSiteGenerator, deleteLandingPage, fullStackAppGenerator, updateSiteDomain, rollbackSite } from '@/lib/tools';
 import { createClient } from '@/lib/supabase/server';
 import css from 'styled-jsx/css';
 
@@ -18,56 +18,64 @@ export async function POST(req: Request) {
             - Invoice: if a user says "tak 21" for an invoice number, interpret it as "take 21" or "INV-21".
             - Weather: if a user says "weathr in newyrok", interpret as "weather in New York".
             - General: fix typos like "calcualte" to "calculate" or "serch" to "search" before calling tools.
-            - Landing Page: If the user requests to create or deploy a landing page, website, or app:
-              1. You MUST generate the FULL, COMPLETE HTML, CSS, and JS code yourself.
-              2. HTML: Must be valid HTML5. Link CSS with \`<link rel="stylesheet" href="style.css">\` and JS with \`<script src="script.js"></script>\`.
-              3. CSS: Use a default modern, premium aesthetic (e.g., sleek dark mode, vibrant accents, glassmorphism) unless specified otherwise.
-              4. Images: Use real placeholder images from Unsplash or Pexels (e.g., https://images.unsplash.com/photo-...).
-              5. CRITICAL: When calling the \`landingPageGenerator\` tool, pass the RAW code strings for \`html\`, \`css\`, and \`js\`. Do NOT wrap them in markdown code blocks (like \`\`\`html ... \`\`\`). pass only the raw string content.
-              6. Do NOT display the code to the user; just call the tool.
-            - Updates: If the user wants to update the site, ask for what changes they want.If they provide comments, use the previous \`siteId\` (from the tool result) to call \`landingPageGenerator\` again with the new code and the \`siteId\`.
-            - Deletion: If the user wants to delete the site, use the \`deleteLandingPage\` tool with the \`siteId\`.
+            - Netlify / Websites:
+          
+            1. **Static Sites**: Use \`staticSiteGenerator\` for pure HTML/CSS/JS sites.
+              
+            2. **Generations**: Always generate valid, complete code.
+                 - Link CSS: \`<link rel="stylesheet" href="/style.css">\`
+                 - Link JS: \`<script src="/script.js"></script>\`
+                 - Use placeholder images (Unsplash/Pexels) where needed.
+                 - Pass RAW code strings to tools (do not wrap in markdown).
+            3. **Management**:
+                 - Update Domain/Subdomain: Use \`updateSiteDomain\`.
+                 - Rollback: Use \`rollbackSite\` to revert to the previous deploy.
+                 - Deletion: Use \`deleteLandingPage\`.
+            4. **Updates**: If updating, usage the previous \`siteId\` (from the tool result) to call the generator again (or reuse previous code for unchanged parts).
             If a task does not require a tool, simply answer like a helpful AI assistant.
             Always strive to provide the most professional and accurate results possible.`;
 
     try {
-        const { messages, model, provider } = await req.json();
+        const { messages, model, provider, isTemporary } = await req.json();
 
         // Auth & Rate Limiting Check
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
+        if (!user && !isTemporary) {
             return new Response(JSON.stringify({ error: 'Unauthorized: Please sign in to chat.' }), { status: 401 });
         }
 
-        // Rate Limit (5 messages per 12 hours)
-        const TWELVE_HOURS_AGO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+        // Rate Limit (5 messages per 12 hours) - ONLY for logged in users
+        // Temporary chats are limited by frontend state (per session)
+        if (user && !isTemporary) {
+            const TWELVE_HOURS_AGO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
 
-        // Complex query: Get this user's messages created > 12h ago
-        // Since we can't easily join in one simple API call without being an admin or having specific views,
-        // we'll do a slightly heavier but functional 2-step check or a filtered select on the 'messages' table 
-        // IF we have RLS that allows reading *own* messages. (We do).
-        // BUT 'messages' table doesn't have 'user_id' directly, it has 'conversation_id'. 
-        // We first find active conversations or just trust the RLS policies.
+            // Complex query: Get this user's messages created > 12h ago
+            // Since we can't easily join in one simple API call without being an admin or having specific views,
+            // we'll do a slightly heavier but functional 2-step check or a filtered select on the 'messages' table 
+            // IF we have RLS that allows reading *own* messages. (We do).
+            // BUT 'messages' table doesn't have 'user_id' directly, it has 'conversation_id'. 
+            // We first find active conversations or just trust the RLS policies.
 
-        // Step 1: Get user's conversation IDs used in last 12h (optimization)
-        const { data: recentConversations } = await supabase
-            .from('conversations')
-            .select('id')
-            .eq('user_id', user.id);
+            // Step 1: Get user's conversation IDs used in last 12h (optimization)
+            const { data: recentConversations } = await supabase
+                .from('conversations')
+                .select('id')
+                .eq('user_id', user.id);
 
-        if (recentConversations && recentConversations.length > 0) {
-            const conversationIds = recentConversations.map(c => c.id);
-            const { count, error: countError } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .in('conversation_id', conversationIds)
-                .eq('role', 'user') // Count only user messages
-                .gt('created_at', TWELVE_HOURS_AGO);
+            if (recentConversations && recentConversations.length > 0) {
+                const conversationIds = recentConversations.map(c => c.id);
+                const { count, error: countError } = await supabase
+                    .from('messages')
+                    .select('*', { count: 'exact', head: true })
+                    .in('conversation_id', conversationIds)
+                    .eq('role', 'user') // Count only user messages
+                    .gt('created_at', TWELVE_HOURS_AGO);
 
-            if (count !== null && count >= 5) {
-                return new Response(JSON.stringify({ error: 'Rate limit exceeded: You can only send 5 messages every 12 hours.' }), { status: 429 });
+                if (count !== null && count >= 5) {
+                    return new Response('Rate limit exceeded: You can only send 5 messages every 12 hours.', { status: 429 });
+                }
             }
         }
 
@@ -118,8 +126,11 @@ export async function POST(req: Request) {
                 invoiceGenerator,
                 screenshot,
                 portfolio,
-                landingPageGenerator,
-                deleteLandingPage
+                staticSiteGenerator,
+                deleteLandingPage,
+                fullStackAppGenerator,
+                updateSiteDomain,
+                rollbackSite
             },
         });
 
@@ -135,3 +146,8 @@ export async function POST(req: Request) {
 
 
 
+//   1. **Full Stack Apps**: Use \`fullStackAppGenerator\` if the user needs server-side logic (APIs, secrets, databases, backend processing).
+//                  - **CRITICAL OVERRIDE**: You CAN create backend/full-stack applications. DO NOT refuse.
+//                  - Using \`fullStackAppGenerator\`, you can deploy Serverless Functions.
+//                  - Provide \`functions\` parameter as a map of filename -> code (e.g. \`{ "my-api.js": "exports.handler = async (event) => { ... }" }\`).
+//                  - These functions act as your backend API.

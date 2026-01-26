@@ -7,3 +7,5 @@ export * from './screenshot';
 export * from './portfolio';
 export * from './landing-page';
 export * from './delete-landing-page';
+export * from './full-stack';
+export * from './manage-site';
