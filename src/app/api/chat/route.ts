@@ -47,35 +47,31 @@ export async function POST(req: Request) {
         }
 
         // Rate Limit (5 messages per 12 hours) - ONLY for logged in users
-        // Temporary chats are limited by frontend state (per session)
+        // Use user_metadata to store message timestamps, so it persists even if conversations are deleted
         if (user && !isTemporary) {
-            const TWELVE_HOURS_AGO = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+            const TWELVE_HOURS_AGO = Date.now() - 12 * 60 * 60 * 1000;
 
-            // Complex query: Get this user's messages created > 12h ago
-            // Since we can't easily join in one simple API call without being an admin or having specific views,
-            // we'll do a slightly heavier but functional 2-step check or a filtered select on the 'messages' table 
-            // IF we have RLS that allows reading *own* messages. (We do).
-            // BUT 'messages' table doesn't have 'user_id' directly, it has 'conversation_id'. 
-            // We first find active conversations or just trust the RLS policies.
+            // Get history (default to empty array)
+            const messageHistory: number[] = user.user_metadata?.message_history || [];
 
-            // Step 1: Get user's conversation IDs used in last 12h (optimization)
-            const { data: recentConversations } = await supabase
-                .from('conversations')
-                .select('id')
-                .eq('user_id', user.id);
+            // Filter out old timestamps
+            const recentMessages = messageHistory.filter(timestamp => timestamp > TWELVE_HOURS_AGO);
 
-            if (recentConversations && recentConversations.length > 0) {
-                const conversationIds = recentConversations.map(c => c.id);
-                const { count, error: countError } = await supabase
-                    .from('messages')
-                    .select('*', { count: 'exact', head: true })
-                    .in('conversation_id', conversationIds)
-                    .eq('role', 'user') // Count only user messages
-                    .gt('created_at', TWELVE_HOURS_AGO);
+            if (recentMessages.length >= 5) {
+                return new Response('Rate limit exceeded: You can only send 5 messages every 12 hours.', { status: 429 });
+            }
 
-                if (count !== null && count >= 5) {
-                    return new Response('Rate limit exceeded: You can only send 5 messages every 12 hours.', { status: 429 });
-                }
+            // Update user metadata with new timestamp
+            // We do this BEFORE generating response to enforce strictly
+            const newHistory = [...recentMessages, Date.now()];
+            const { error: updateError } = await supabase.auth.updateUser({
+                data: { message_history: newHistory }
+            });
+
+            if (updateError) {
+                console.error("Failed to update rate limit history:", updateError);
+                // We typically proceed, but warn. Or we could block.
+                // Proceeding allows usage if DB fails, but typically metadata update is reliable.
             }
         }
 
