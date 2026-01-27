@@ -30,7 +30,8 @@ import {
   Trash,
   User as UserIcon,
   LogOut,
-  HourglassIcon
+  HourglassIcon,
+  MessageCircleQuestionMark
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import toolsData from '@/data/tools.json';
@@ -76,9 +77,10 @@ export default function ChatPage() {
     setIsMounted(true);
   }, []);
 
-  const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark');
+  const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | 'help' | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system' | 'dropdawn-theme'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
 
   const [isTemporaryMode, setIsTemporaryMode] = useState(false);
   const [temporaryCount, setTemporaryCount] = useState(0);
@@ -155,7 +157,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
+    root.classList.remove('light', 'dark', 'dropdawn-theme');
 
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -166,7 +168,7 @@ export default function ChatPage() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append, setInput } = useChat({
     api: '/api/chat',
     body: {
       model: selectedModel.id,
@@ -364,7 +366,10 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans antialiased">
+    <div className={cn(
+      "flex h-[100dvh] w-full text-foreground overflow-hidden font-sans antialiased",
+      theme === 'dropdawn-theme' ? "bg-transparent" : "bg-background"
+    )}>
       {/* Static Sidebar */}
       <AnimatePresence mode="wait">
         {isMounted && isSidebarOpen && (
@@ -382,7 +387,10 @@ export default function ChatPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -260, opacity: 0 }}
               transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-              className="fixed z-50 h-full w-[260px] border-r border-border/40 bg-background flex flex-col shrink-0"
+              className={cn(
+                "fixed z-50 h-full w-[260px] border-r border-border/40 flex flex-col shrink-0",
+                theme === 'dropdawn-theme' ? "bg-[oklch(0.22_0_0)] border-none m-4 rounded-xl h-[calc(100%-2rem)] shadow-2xl" : "bg-background"
+              )}
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-6">
@@ -469,6 +477,14 @@ export default function ChatPage() {
                       <Settings className="w-3.5 h-3.5" />
                       Settings
                     </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-9 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+                      onClick={() => setActiveModal('help')}
+                    >
+                      <MessageCircleQuestionMark className="w-3.5 h-3.5" />
+                      Help
+                    </Button>
                   </div>
                 </ScrollArea>
 
@@ -520,12 +536,26 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col relative w-full overflow-hidden">
+      <div className={cn(
+        "flex-1 flex flex-col relative w-full overflow-hidden",
+        theme === 'dropdawn-theme' ? "p-4" : ""
+      )}>
         {/* Minimal Header */}
-        <header className="h-14 flex items-center justify-between px-4 border-b border-border/40 shrink-0">
+        <header className={cn(
+          "h-14 flex items-center justify-between px-4 border-b border-border/40 shrink-0",
+          theme === 'dropdawn-theme' ? "border-none" : ""
+        )}>
           <div className="flex items-center gap-3">
             {!isSidebarOpen && (
-              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="h-8 w-8 hover:bg-secondary">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className={cn(
+                  "h-8 w-8 hover:bg-secondary",
+                  theme === 'dropdawn-theme' && "bg-card/80 hover:bg-card text-card-foreground backdrop-blur-sm"
+                )}
+              >
                 <PanelLeft className="w-4 h-4" />
               </Button>
             )}
@@ -533,7 +563,10 @@ export default function ChatPage() {
               {isSidebarOpen ? (
                 <span></span>
               ) : (
-                <span className="text-sm font-normal tracking-wider font-serif">dropdawn</span>
+                <span className={cn(
+                  "text-sm font-normal tracking-wider font-serif",
+                  theme === 'dropdawn-theme' && "text-white"
+                )}>dropdawn</span>
               )}
             </div>
           </div>
@@ -544,393 +577,443 @@ export default function ChatPage() {
           )}
         </header>
 
-        {/* Chat Area */}
-        <main className="flex-1 overflow-hidden relative flex flex-col min-h-0">
-          <ScrollArea className="flex-1 h-full">
-            <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-              {messages.map((m: Message) => (
-                <motion.div
-                  key={m.id}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    "flex flex-col gap-2",
-                    m.role === 'user' ? "items-end" : "items-start"
-                  )}
-                >
-                  <div className={cn(
-                    "max-w-[90%] rounded-lg p-3 text-[15px] leading-relaxed",
-                    m.role === 'user'
-                      ? "bg-secondary/40 border border-border/40 text-foreground"
-                      : "bg-secondary/10 border border-border/20"
-                  )}>
-                    {/* Tool Call Rendering */}
-                    {m.toolInvocations?.map((toolInvocation) => {
-                      const { toolName, toolCallId, state } = toolInvocation;
+        {/* Chat Area & Input Wrapper */}
+        <div className={cn(
+          "flex-1 flex flex-col min-h-0 overflow-hidden relative",
+          theme === 'dropdawn-theme' ? "bg-[#262626] rounded-md shadow-2xl max-w-2xl mx-auto w-full" : ""
+        )}>
+          <main className="flex-1 overflow-hidden relative flex flex-col min-h-0">
+            <ScrollArea className="flex-1 h-full">
+              <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
+                {messages.map((m: Message) => (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "flex flex-col gap-2",
+                      m.role === 'user' ? "items-end" : "items-start"
+                    )}
+                  >
+                    <div className={cn(
+                      "max-w-[90%] rounded-lg p-3 text-[15px] leading-relaxed",
+                      m.role === 'user'
+                        ? (theme === 'dropdawn-theme' ? "bg-white/10 border border-white/20 text-white" : "bg-secondary/40 border border-border/40 text-foreground")
+                        : (theme === 'dropdawn-theme' ? "bg-white/5 border border-white/10 text-white/90" : "bg-secondary/10 border border-border/20")
+                    )}>
+                      {/* Tool Call Rendering */}
+                      {m.toolInvocations?.map((toolInvocation) => {
+                        const { toolName, toolCallId, state } = toolInvocation;
 
-                      const getToolIcon = (name: string) => {
-                        switch (name) {
-                          case 'calculate': return <Calculator className="w-3 h-3" />;
-                          case 'weather': return <Cloud className="w-3 h-3" />;
-                          case 'webSearch': return <Search className="w-3 h-3" />;
-                          case 'pdfGenerator': return <FileText className="w-3 h-3" />;
-                          case 'invoiceGenerator': return <Receipt className="w-3 h-3" />;
-                          case 'screenshot': return <Camera className="w-3 h-3" />;
-                          case 'portfolio': return <Briefcase className="w-3 h-3" />;
-                          case 'landingPageGenerator': return <Rocket className="w-3 h-3" />;
-                          case 'deleteLandingPage': return <Trash className="w-3 h-3" />;
-                          default: return <Calculator className="w-3 h-3" />;
-                        }
-                      };
+                        const getToolIcon = (name: string) => {
+                          switch (name) {
+                            case 'calculate': return <Calculator className="w-3 h-3" />;
+                            case 'weather': return <Cloud className="w-3 h-3" />;
+                            case 'webSearch': return <Search className="w-3 h-3" />;
+                            case 'pdfGenerator': return <FileText className="w-3 h-3" />;
+                            case 'invoiceGenerator': return <Receipt className="w-3 h-3" />;
+                            case 'screenshot': return <Camera className="w-3 h-3" />;
+                            case 'portfolio': return <Briefcase className="w-3 h-3" />;
+                            case 'landingPageGenerator': return <Rocket className="w-3 h-3" />;
+                            case 'deleteLandingPage': return <Trash className="w-3 h-3" />;
+                            default: return <Calculator className="w-3 h-3" />;
+                          }
+                        };
 
-                      if (state === 'result') {
-                        const { result } = toolInvocation;
-                        return (
-                          <div key={toolCallId} className="flex flex-col gap-2 mb-4 p-2 rounded bg-background/50 border border-border/40">
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase font-bold">
-                              {getToolIcon(toolName)}
-                              {toolName} result
-                            </div>
-                            <div className="text-sm">
-                              {toolName === 'calculate' ? (
-                                <div className="font-mono">
-                                  {result.expression} = <span className="text-foreground font-bold">{result.result}</span>
-                                </div>
-                              ) : toolName === 'weather' ? (
-                                <div className="space-y-1">
-                                  <div className="font-bold">{result.location}</div>
-                                  <div>{result.temperature}, {result.condition}</div>
-                                  <div className="text-xs text-muted-foreground">Humidity: {result.humidity} | Wind: {result.wind}</div>
-                                </div>
-                              ) : toolName === 'webSearch' ? (
-                                <div className="space-y-2">
-                                  {result.results?.results?.slice(0, 3).map((r: any, i: number) => (
-                                    <div key={i} className="border-l-2 border-border/40 pl-2">
-                                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="font-bold hover:underline decoration-primary text-primary/80">{r.title}</a>
-                                      <p className="text-xs text-muted-foreground line-clamp-1">{r.content}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (toolName === 'pdfGenerator' || toolName === 'invoiceGenerator') ? (
-                                <div className="space-y-2">
-                                  <div className="font-medium">{result.message}</div>
-                                  {result.dataUri && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 text-xs gap-2"
-                                      onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = result.dataUri;
-                                        link.download = result.filename || 'document.pdf';
-                                        link.click();
-                                      }}
-                                    >
-                                      <FileText className="w-3 h-3" />
-                                      Download PDF
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : toolName === 'screenshot' ? (
-                                <div className="relative rounded-lg overflow-hidden border border-border/40 bg-secondary/20">
-                                  {result.image ? (
-                                    <img src={result.image} alt="Screenshot" className="w-full h-auto block" />
-                                  ) : (
-                                    <div className="p-4 text-xs text-destructive">No image data returned</div>
-                                  )}
-                                </div>
-                              ) : toolName === 'portfolio' ? (
-                                <details className="group">
-                                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground list-none flex items-center gap-2 select-none">
-                                    <span>View Portfolio Details</span>
-                                    <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
-                                  </summary>
-                                  <div className="mt-2 p-3 bg-secondary/10 rounded-md border border-border/20 text-sm space-y-1">
-                                    <div className="font-bold">URL: <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{result.url}</a></div>
-                                    <div className="text-muted-foreground">{result.info}</div>
-                                    {result.twitter && <div>Twitter: <a href={result.twitter} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">{result.twitter}</a></div>}
+                        if (state === 'result') {
+                          const { result } = toolInvocation;
+                          return (
+                            <div key={toolCallId} className="flex flex-col gap-2 mb-4 p-2 rounded bg-background/50 border border-border/40">
+                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase font-bold">
+                                {getToolIcon(toolName)}
+                                {toolName} result
+                              </div>
+                              <div className="text-sm">
+                                {toolName === 'calculate' ? (
+                                  <div className="font-mono">
+                                    {result.expression} = <span className="text-foreground font-bold">{result.result}</span>
                                   </div>
-                                </details>
-                              ) : toolName === 'landingPageGenerator' ? (
-                                <div className="space-y-2">
-                                  <div className="font-medium text-green-500">{result.message}</div>
-                                  {result.siteUrl && (
-                                    <div className="flex flex-col gap-1">
-                                      <a href={result.siteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold flex items-center gap-1">
-                                        {result.siteUrl} <ExternalLink className="w-3 h-3" />
-                                      </a>
-                                      {result.adminUrl && (
-                                        <a href={result.adminUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground">
-                                          Manage Site
+                                ) : toolName === 'weather' ? (
+                                  <div className="space-y-1">
+                                    <div className="font-bold">{result.location}</div>
+                                    <div>{result.temperature}, {result.condition}</div>
+                                    <div className="text-xs text-muted-foreground">Humidity: {result.humidity} | Wind: {result.wind}</div>
+                                  </div>
+                                ) : toolName === 'webSearch' ? (
+                                  <div className="space-y-2">
+                                    {result.results?.results?.slice(0, 3).map((r: any, i: number) => (
+                                      <div key={i} className="border-l-2 border-border/40 pl-2">
+                                        <a href={r.url} target="_blank" rel="noopener noreferrer" className="font-bold hover:underline decoration-primary text-primary/80">{r.title}</a>
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{r.content}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (toolName === 'pdfGenerator' || toolName === 'invoiceGenerator') ? (
+                                  <div className="space-y-2">
+                                    <div className="font-medium">{result.message}</div>
+                                    {result.dataUri && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-2"
+                                        onClick={() => {
+                                          const link = document.createElement('a');
+                                          link.href = result.dataUri;
+                                          link.download = result.filename || 'document.pdf';
+                                          link.click();
+                                        }}
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                        Download PDF
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : toolName === 'screenshot' ? (
+                                  <div className="relative rounded-lg overflow-hidden border border-border/40 bg-secondary/20">
+                                    {result.image ? (
+                                      <img src={result.image} alt="Screenshot" className="w-full h-auto block" />
+                                    ) : (
+                                      <div className="p-4 text-xs text-destructive">No image data returned</div>
+                                    )}
+                                  </div>
+                                ) : toolName === 'portfolio' ? (
+                                  <details className="group">
+                                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground list-none flex items-center gap-2 select-none">
+                                      <span>View Portfolio Details</span>
+                                      <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+                                    </summary>
+                                    <div className="mt-2 p-3 bg-secondary/10 rounded-md border border-border/20 text-sm space-y-1">
+                                      <div className="font-bold">URL: <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{result.url}</a></div>
+                                      <div className="text-muted-foreground">{result.info}</div>
+                                      {result.twitter && <div>Twitter: <a href={result.twitter} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">{result.twitter}</a></div>}
+                                    </div>
+                                  </details>
+                                ) : toolName === 'landingPageGenerator' ? (
+                                  <div className="space-y-2">
+                                    <div className="font-medium text-green-500">{result.message}</div>
+                                    {result.siteUrl && (
+                                      <div className="flex flex-col gap-1">
+                                        <a href={result.siteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold flex items-center gap-1">
+                                          {result.siteUrl} <ExternalLink className="w-3 h-3" />
                                         </a>
-                                      )}
-                                    </div>
-                                  )}
-                                  {result.error && <div className="text-destructive font-bold">{result.error}</div>}
-                                </div>
-                              ) : toolName === 'deleteLandingPage' ? (
-                                <div className="space-y-1">
-                                  {result.error ? (
-                                    <div className="font-medium text-destructive">{result.error}</div>
-                                  ) : (
-                                    <div className="font-medium text-destructive flex items-center gap-2">
-                                      <Trash className="w-3 h-3" />
-                                      {result.message}
-                                    </div>
-                                  )}
-                                  {result.siteId && <div className="text-xs text-muted-foreground">ID: {result.siteId}</div>}
-                                </div>
-                              ) : (
-                                <pre className="text-[10px] overflow-auto max-h-40 p-2 bg-secondary/20 rounded">
-                                  {JSON.stringify(result, null, 2)}
-                                </pre>
-                              )}
+                                        {result.adminUrl && (
+                                          <a href={result.adminUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground">
+                                            Manage Site
+                                          </a>
+                                        )}
+                                      </div>
+                                    )}
+                                    {result.error && <div className="text-destructive font-bold">{result.error}</div>}
+                                  </div>
+                                ) : toolName === 'deleteLandingPage' ? (
+                                  <div className="space-y-1">
+                                    {result.error ? (
+                                      <div className="font-medium text-destructive">{result.error}</div>
+                                    ) : (
+                                      <div className="font-medium text-destructive flex items-center gap-2">
+                                        <Trash className="w-3 h-3" />
+                                        {result.message}
+                                      </div>
+                                    )}
+                                    {result.siteId && <div className="text-xs text-muted-foreground">ID: {result.siteId}</div>}
+                                  </div>
+                                ) : (
+                                  <pre className="text-[10px] overflow-auto max-h-40 p-2 bg-secondary/20 rounded">
+                                    {JSON.stringify(result, null, 2)}
+                                  </pre>
+                                )}
+                              </div>
                             </div>
+                          );
+                        }
+
+                        return (
+                          <div key={toolCallId} className="flex items-center gap-2 text-[11px] text-muted-foreground animate-pulse mb-2">
+                            {getToolIcon(toolName)}
+                            Using {toolName}...
                           </div>
                         );
-                      }
+                      })}
 
-                      return (
-                        <div key={toolCallId} className="flex items-center gap-2 text-[11px] text-muted-foreground animate-pulse mb-2">
-                          {getToolIcon(toolName)}
-                          Using {toolName}...
+                      {m.content && (
+                        <div className={cn(
+                          "prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-muted",
+                          m.id === 'welcome' && "[&_p]:text-2xl [&_p]:font-light [&_p]:font-serif",
+                          theme === 'dropdawn-theme' && "prose-headings:text-white prose-p:text-white/90 prose-strong:text-white prose-code:text-white/90"
+                        )}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {m.content}
+                          </ReactMarkdown>
                         </div>
-                      );
-                    })}
-
-                    {m.content && (
-                      <div className={cn(
-                        "prose prose-sm dark:prose-invert max-w-none break-words prose-p:leading-relaxed prose-pre:bg-muted",
-                        m.id === 'welcome' && "[&_p]:text-2xl [&_p]:font-light [&_p]:font-serif"
-                      )}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {m.content}
-                        </ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col gap-2 items-start"
-                >
-                  <div className="bg-secondary/10 border border-border/20 rounded-lg p-3 flex flex-col gap-2 min-w-[140px]">
-                    <div className="flex gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground animate-pulse font-bold uppercase tracking-widest">
-                      {getStatusMessage()}
-                    </span>
-                  </div>
-                </motion.div>
-              )}
-              {error && !error.message?.includes('Rate limit') && (
-                <div className="p-3 text-xs border border-destructive/50 text-destructive bg-destructive/5 rounded-lg max-w-md">
-                  {error.message || 'An error occurred.'}
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-        </main>
-
-        {/* Rate Limit Warning */}
-        {error?.message?.includes('Rate limit') && (
-          <div className="w-full px-4 pb-2 z-20">
-            <div className="max-w-2xl mx-auto bg-destructive/10 border border-destructive/20 text-destructive text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-              Daily limit reached. Resets in 12 hours.
-            </div>
-          </div>
-        )}
-
-        {/* Unified Input Area */}
-        <div className="w-full p-4 bg-background pt-2 z-20 shrink-0">
-          <div className="max-w-2xl mx-auto relative flex flex-col gap-2 bg-secondary/20 backdrop-blur-md border border-border/30 rounded-xl p-2 transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-1 focus-within:ring-foreground/5 shadow-2xl">
-            <form
-              onSubmit={onFormSubmit}
-              className="flex flex-col"
-            >
-              <TextareaAutosize
-                value={input}
-                onChange={handleInputChange}
-                onClick={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
-                onFocus={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (!user && !isTemporaryMode) {
-                      setActiveModal('auth');
-                      return;
-                    }
-                    if (isTemporaryMode && temporaryCount >= 3) {
-                      return;
-                    }
-                    if (input.trim() && !isLoading) {
-                      const formEvent = new Event('submit', { cancelable: true, bubbles: true });
-                      e.currentTarget.form?.dispatchEvent(formEvent);
-                    }
-                  }
-                }}
-                disabled={isLoading || !!selectedModel.locked || (isTemporaryMode && temporaryCount >= 3)}
-                placeholder={
-                  !user && !isTemporaryMode
-                    ? "Please sign in to start chatting..."
-                    : (isTemporaryMode && temporaryCount >= 3
-                      ? "Temporary limit reached. Please sign in."
-                      : (isLoading ? "Please wait..." : (selectedModel.locked ? "This model is currently unavailable." : "Ask me something or use tools...")))
-                }
-                minRows={1}
-                maxRows={6}
-                className={cn(
-                  "w-full border-none focus:outline-none bg-transparent py-3 px-3 text-sm shadow-none placeholder:text-muted-foreground/50 resize-none flex-1 overflow-y-auto custom-scrollbar leading-relaxed",
-                  // !user && "cursor-not-allowed opacity-50" // Removed to allow clicking
+                  </motion.div>
+                ))}
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col gap-2 items-start"
+                  >
+                    <div className="bg-secondary/10 border border-border/20 rounded-lg p-3 flex flex-col gap-2 min-w-[140px]">
+                      <div className="flex gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 bg-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground animate-pulse font-bold uppercase tracking-widest">
+                        {getStatusMessage()}
+                      </span>
+                    </div>
+                  </motion.div>
                 )}
-              />
-              <div className="flex items-center justify-between px-2 pt-1 border-t border-border/10">
-                <Select value={selectedModel.id} onValueChange={handleModelChange}>
-                  <SelectTrigger className="w-auto h-7 bg-transparent border-none text-[11px] font-medium text-muted-foreground/70 hover:bg-secondary/50 rounded-md transition-colors px-2 gap-1 focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border/40 shadow-2xl">
-                    {MODELS.map((model) => (
-                      <SelectItem
-                        key={model.id}
-                        value={model.id}
-                        disabled={model.locked}
-                        className="text-xs focus:bg-secondary/50 focus:text-foreground py-1.5"
-                      >
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <span>{model.name}</span>
-                          {model.locked && <Lock className="w-3 h-3 text-muted-foreground/50" />}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {error && !error.message?.includes('Rate limit') && (
+                  <div className="p-3 text-xs border border-destructive/50 text-destructive bg-destructive/5 rounded-lg max-w-md">
+                    {error.message || 'An error occurred.'}
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          </main>
 
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!input.trim() || isLoading || !!selectedModel.locked || (!user && !isTemporaryMode) || (error?.message?.includes('Rate limit') ?? false) || (isTemporaryMode && temporaryCount >= 3)}
+          {/* Rate Limit Warning */}
+          {error?.message?.includes('Rate limit') && (
+            <div className="w-full px-4 pb-2 z-20">
+              <div className="max-w-2xl mx-auto bg-destructive/10 border border-destructive/20 text-destructive text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                Daily limit reached. Resets in 12 hours.
+              </div>
+            </div>
+          )}
+
+          {/* Unified Input Area */}
+          <div className={cn(
+            "w-full p-4 pt-2 z-20 shrink-0",
+            theme === 'dropdawn-theme' ? "" : "bg-background"
+          )}>
+            {messages.length === 1 && messages[0].id === 'welcome' && (
+              <div className="max-w-2xl mx-auto w-full mb-3 overflow-hidden flex mask-gradient-r">
+                <div className="flex gap-2 animate-scroll">
+                  {[
+                    "Design a modern landing page for a coffee shop with sections for hero image, menu highlights, ambience photos, and an online ordering button. Use warm brown and cream colors with clear readable fonts. Clicking 'Order Now' should trigger a call to 8525725721. Include images related to coffee, pastries, and café ambience sourced from Pexels or Unsplash.",
+                    "Generate a $2500 invoice for consulting services including 5 consultations, Invoice No. INV-2026-001, client email: client@example.com",
+                    "Provide the latest weather update for Delhi",
+                    "Search the web for upcoming 2026 events in India"
+                  ].concat([
+                    "Design a modern landing page for a coffee shop with sections for hero image, menu highlights, ambience photos, and an online ordering button. Use warm brown and cream colors with clear readable fonts. Clicking 'Order Now' should trigger a call to 8525725721. Include images related to coffee, pastries, and café ambience sourced from Pexels or Unsplash.",
+                    "Generate a $2500 invoice for consulting services including 5 consultations, Invoice No. INV-2026-001, client email: client@example.com",
+                    "Provide the latest weather update for Delhi",
+                    "Search the web for upcoming 2026 events in India"
+                  ]).map((text, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setInput(text)}
+                      className={cn(
+                        "flex-none bg-secondary/30 hover:bg-secondary/50 border border-border/40 rounded-full px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-all whitespace-nowrap shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                        theme === 'dropdawn-theme' && "bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border-white/5"
+                      )}
+                    >
+                      {text.slice(0, 40) + `...`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className={cn(
+              "mx-auto relative flex flex-col gap-2 backdrop-blur-md border rounded-xl p-2 transition-all duration-200 focus-within:ring-1 shadow-2xl",
+              theme === 'dropdawn-theme'
+                ? "w-full bg-black/40 border-white/10 focus-within:border-white/20 focus-within:ring-white/10"
+                : "max-w-2xl bg-secondary/20 border-border/30 focus-within:border-foreground/20 focus-within:ring-foreground/5"
+            )}>
+              <form
+                onSubmit={onFormSubmit}
+                className="flex flex-col"
+              >
+                <TextareaAutosize
+                  value={input}
+                  onChange={handleInputChange}
+                  onClick={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
+                  onFocus={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!user && !isTemporaryMode) {
+                        setActiveModal('auth');
+                        return;
+                      }
+                      if (isTemporaryMode && temporaryCount >= 3) {
+                        return;
+                      }
+                      if (input.trim() && !isLoading) {
+                        const formEvent = new Event('submit', { cancelable: true, bubbles: true });
+                        e.currentTarget.form?.dispatchEvent(formEvent);
+                      }
+                    }
+                  }}
+                  disabled={isLoading || !!selectedModel.locked || (isTemporaryMode && temporaryCount >= 3)}
+                  placeholder={
+                    !user && !isTemporaryMode
+                      ? "Please sign in to start chatting..."
+                      : (isTemporaryMode && temporaryCount >= 3
+                        ? "Temporary limit reached. Please sign in."
+                        : (isLoading ? "Please wait..." : (selectedModel.locked ? "This model is currently unavailable." : "Ask anything (Type : for commands)")))
+                  }
+                  minRows={1}
+                  maxRows={6}
                   className={cn(
-                    "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
-                    (input.trim() && !selectedModel.locked && (user || isTemporaryMode)) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
+                    "w-full border-none focus:outline-none bg-transparent py-3 px-3 text-sm shadow-none resize-none flex-1 overflow-y-auto custom-scrollbar leading-relaxed",
+                    theme === 'dropdawn-theme' ? "text-white placeholder:text-white/40" : "placeholder:text-muted-foreground/50"
+                    // !user && "cursor-not-allowed opacity-50" // Removed to allow clicking
                   )}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </form>
-          </div>
-          <Link href="https://x.com/bikash1376" target="_blank">
-            <p className="mt-3 text-center text-[10px] text-muted-foreground/50 tracking-widest font-medium uppercase">
-              Created by <span className="text-muted-foreground/80">Bikash</span>
-            </p>
-          </Link>
-        </div>
-      </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={activeModal === 'auth'}
-        onClose={() => setActiveModal(null)}
-        onSuccess={() => {
-          setActiveModal(null);
-          // Re-check auth would be handled by effect or page reload, but server action revalidates. 
-          // We can manually force a check.
-          supabase.auth.getUser().then(({ data: { user } }) => {
-            setUser(user);
-            if (user) loadConversations();
-          });
-        }}
-      />
-
-      {/* Modals */}
-      <AnimatePresence>
-        {activeModal && activeModal !== 'auth' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setActiveModal(null)}
-              className="absolute inset-0 bg-background/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-background/95 backdrop-blur-xl border border-border/40 ring-1 ring-border/5 rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between p-6 border-b border-border/40 bg-muted/30">
-                <h3 className="text-xl font-light tracking-tight text-foreground flex items-center gap-2 font-serif uppercase">
-                  {activeModal === 'tools' && <Wrench className="w-4 h-4 text-muted-foreground" />}
-                  {activeModal === 'integrations' && <Puzzle className="w-4 h-4 text-muted-foreground" />}
-                  {activeModal === 'settings' && <Settings className="w-4 h-4 text-muted-foreground" />}
-                  {activeModal === 'upgrade' && <Sparkles className="w-4 h-4 text-muted-foreground" />}
-                  {activeModal}
-                </h3>
-                <Button variant="ghost" size="icon" onClick={() => setActiveModal(null)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="p-6">
-                <ScrollArea className="h-[300px] pr-4">
-                  {activeModal === 'tools' ? (
-                    <div className="space-y-6">
-                      <Input
-                        className="bg-secondary/50 border-border/40 focus:bg-background text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/30 focus:ring-0"
-                        placeholder="Search tools..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-
-                      {toolsData.filter((tool) =>
-                        tool.name.toLowerCase().includes(searchQuery.toLowerCase())
-                      ).map((tool, i) => (
-                        <div key={i} className="flex flex-col gap-1.5 p-3 rounded-lg hover:bg-secondary/50 transition-colors border border-transparent hover:border-border/40 group">
-                          <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{tool.name}</h4>
-                          <p className="text-[13px] text-muted-foreground leading-relaxed">
-                            {tool.description}
-                          </p>
-                        </div>
+                />
+                <div className="flex items-center justify-between px-2 pt-1 border-t border-border/10">
+                  <Select value={selectedModel.id} onValueChange={handleModelChange}>
+                    <SelectTrigger className={cn(
+                      "w-auto h-7 bg-transparent border-none text-[11px] font-medium hover:bg-secondary/50 rounded-md transition-colors px-2 gap-1 focus:ring-0",
+                      theme === 'dropdawn-theme' ? "text-white/60 hover:text-white/80" : "text-muted-foreground/70"
+                    )}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border/40 shadow-2xl">
+                      {MODELS.map((model) => (
+                        <SelectItem
+                          key={model.id}
+                          value={model.id}
+                          disabled={model.locked}
+                          className="text-xs focus:bg-secondary/50 focus:text-foreground py-1.5"
+                        >
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <span>{model.name}</span>
+                            {model.locked && <Lock className="w-3 h-3 text-muted-foreground/50" />}
+                          </div>
+                        </SelectItem>
                       ))}
-                    </div>
-                  ) : activeModal === 'settings' ? (
-                    <div className="space-y-8">
-                      <div className="space-y-4">
-                        <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Appearance</label>
-                        <div className="grid grid-cols-3 gap-3">
-                          {[
-                            { id: 'light', name: 'Light', icon: Sun },
-                            { id: 'dark', name: 'Dark', icon: Moon },
-                            { id: 'system', name: 'System', icon: Monitor },
-                          ].map((item) => (
-                            <Button
-                              key={item.id}
-                              variant={'outline'}
-                              className={cn(
-                                "flex flex-col items-center gap-2 h-20 border-border/40 transition-all",
-                                theme === item.id
-                                  ? "bg-foreground text-background hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
-                                  : "bg-transparent dark:bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50 hover:border-border"
-                              )}
-                              onClick={() => setTheme(item.id as any)}
-                            >
-                              <item.icon className="w-4 h-4" />
-                              <span className="text-[10px] font-bold uppercase">{item.name}</span>
-                            </Button>
-                          ))}
-                        </div>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!input.trim() || isLoading || !!selectedModel.locked || (!user && !isTemporaryMode) || (error?.message?.includes('Rate limit') ?? false) || (isTemporaryMode && temporaryCount >= 3)}
+                    className={cn(
+                      "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
+                      (input.trim() && !selectedModel.locked && (user || isTemporaryMode)) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
+                    )}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </form>
+            </div>
+            <Link href="https://x.com/bikash1376" target="_blank">
+              <p className={cn(
+                "mt-3 text-center text-[10px] tracking-widest font-medium uppercase",
+                theme === 'dropdawn-theme' ? "text-white/40" : "text-muted-foreground/50"
+              )}>
+                Created by <span className={theme === 'dropdawn-theme' ? "text-white/60" : "text-muted-foreground/80"}>Bikash</span>
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={activeModal === 'auth'}
+          onClose={() => setActiveModal(null)}
+          onSuccess={() => {
+            setActiveModal(null);
+            // Re-check auth would be handled by effect or page reload, but server action revalidates. 
+            // We can manually force a check.
+            supabase.auth.getUser().then(({ data: { user } }) => {
+              setUser(user);
+              if (user) loadConversations();
+            });
+          }}
+        />
+
+        {/* Modals */}
+        <AnimatePresence>
+          {activeModal && activeModal !== 'auth' && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setActiveModal(null)}
+                className="absolute inset-0 bg-background/60 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="relative w-full max-w-lg bg-background/95 backdrop-blur-xl border border-border/40 ring-1 ring-border/5 rounded-2xl shadow-2xl overflow-hidden"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-border/40 bg-muted/30">
+                  <h3 className="text-xl font-light tracking-tight text-foreground flex items-center gap-2 font-serif uppercase">
+                    {activeModal === 'tools' && <Wrench className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'integrations' && <Puzzle className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'settings' && <Settings className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'upgrade' && <Sparkles className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'help' && <MessageCircleQuestionMark className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal}
+                  </h3>
+                  <Button variant="ghost" size="icon" onClick={() => setActiveModal(null)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="p-6">
+                  <ScrollArea className="h-[330px] pr-4">
+                    {activeModal === 'tools' ? (
+                      <div className="space-y-6">
+                        <Input
+                          className="bg-secondary/50 border-border/40 focus:bg-background text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/30 focus:ring-0"
+                          placeholder="Search tools..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+
+                        {toolsData.filter((tool) =>
+                          tool.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).map((tool, i) => (
+                          <div key={i} className="flex flex-col gap-1.5 p-3 rounded-lg hover:bg-secondary/50 transition-colors border border-transparent hover:border-border/40 group">
+                            <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{tool.name}</h4>
+                            <p className="text-[13px] text-muted-foreground leading-relaxed">
+                              {tool.description}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                      {/* <div className="pt-6 border-t border-border/40 space-y-4">
+                    ) : activeModal === 'settings' ? (
+                      <div className="space-y-8">
+                        <div className="space-y-4">
+                          <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Appearance</label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { id: 'light', name: 'Light', icon: Sun },
+                              { id: 'dark', name: 'Dark', icon: Moon },
+                              { id: 'system', name: 'System', icon: Monitor },
+                              { id: 'dropdawn-theme', name: 'Dropdawn', icon: Sparkles },
+                            ].map((item) => (
+                              <Button
+                                key={item.id}
+                                variant={'outline'}
+                                className={cn(
+                                  "flex flex-col items-center gap-2 h-20 border-border/40 transition-all",
+                                  theme === item.id
+                                    ? "bg-foreground text-background hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
+                                    : "bg-transparent dark:bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50 hover:border-border"
+                                )}
+                                onClick={() => setTheme(item.id as any)}
+                              >
+                                <item.icon className="w-4 h-4" />
+                                <span className="text-[10px] font-bold uppercase">{item.name}</span>
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* <div className="pt-6 border-t border-border/40 space-y-4">
                         <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Data Management</label>
                         <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/40">
                           <span className="text-sm font-medium text-foreground">Clear Conversations</span>
@@ -944,35 +1027,106 @@ export default function ChatPage() {
                           </Button>
                         </div>
                       </div> */}
-                    </div>
-                  ) : activeModal === 'upgrade' ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary/20 to-purple-500/20 flex items-center justify-center mb-2 ring-1 ring-border/20">
-                        <Sparkles className="w-10 h-10 text-primary animate-pulse" />
                       </div>
-                      <div className="space-y-2">
-                        <h4 className="text-xl font-bold text-foreground">Pro Plan Coming Soon</h4>
-                        <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
-                          Unlock longer memory, powerful models, and private storage spaces.
-                        </p>
+                    ) : activeModal === 'upgrade' ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary/20 to-purple-500/20 flex items-center justify-center mb-2 ring-1 ring-border/20">
+                          <Sparkles className="w-10 h-10 text-primary animate-pulse" />
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-xl font-bold text-foreground">Pro Plan Coming Soon</h4>
+                          <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                            Unlock longer memory, powerful models, and private storage spaces.
+                          </p>
+                        </div>
+                        <Button className="mt-4 bg-foreground text-background hover:bg-foreground/90 font-medium px-8 rounded-full" onClick={() => setActiveModal(null)}>Get Notified</Button>
                       </div>
-                      <Button className="mt-4 bg-foreground text-background hover:bg-foreground/90 font-medium px-8 rounded-full" onClick={() => setActiveModal(null)}>Get Notified</Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground py-16">
-                      <Puzzle className="w-12 h-12 opacity-20" />
-                      <div className="text-center space-y-1">
-                        <p className="text-sm font-medium text-foreground/80">No active integrations</p>
-                        <p className="text-xs">Connect your favorite apps to do more.</p>
+                    ) : activeModal === 'help' ? (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-foreground">Found a Problem?</h4>
+                          <p className="text-xs text-muted-foreground">Let us know so we can improve Dropdawn.</p>
+                        </div>
+                        <form className="space-y-4" onSubmit={async (e) => {
+                          e.preventDefault();
+                          setIsFeedbackSubmitting(true);
+                          const form = e.currentTarget;
+                          const formData = new FormData(form);
+
+                          try {
+                            const response = await fetch("https://formspree.io/f/xzdrkqyg", {
+                              method: "POST",
+                              body: formData,
+                              headers: {
+                                'Accept': 'application/json'
+                              }
+                            });
+
+                            if (response.ok) {
+                              alert('Thank you for your feedback!');
+                              form.reset();
+                              setActiveModal(null);
+                            } else {
+                              alert('Oops! There was a problem submitting your feedback.');
+                            }
+                          } catch (error) {
+                            alert('Oops! There was a problem submitting your feedback.');
+                          } finally {
+                            setIsFeedbackSubmitting(false);
+                          }
+                        }}>
+                          <div className="space-y-2">
+                            <label htmlFor="name" className="text-xs font-bold uppercase text-muted-foreground">Name</label>
+                            <Input
+                              id="name"
+                              name="name"
+                              placeholder="Anonymous"
+                              defaultValue="Anonymous"
+                              className="bg-secondary/50 text-foreground rounded-lg"
+                              disabled={isFeedbackSubmitting}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="message" className="text-xs font-bold uppercase text-muted-foreground">Message <span className="text-destructive">*</span></label>
+                            <TextareaAutosize
+                              id="message"
+                              name="message"
+                              required
+                              minRows={3}
+                              placeholder="Describe the issue or feedback..."
+                              className="w-full bg-secondary/50 border border-border/40 text-foreground rounded-lg p-3 text-sm focus:outline-none  focus:ring-primary/50 resize-none disabled:opacity-50"
+                              disabled={isFeedbackSubmitting}
+                            />
+                          </div>
+                          <div className="pt-2 flex justify-end">
+                            <Button
+                              type="submit"
+                              className="bg-foreground text-background hover:bg-foreground/90 font-medium text-xs h-9 px-6 rounded-lg disabled:opacity-70"
+                              disabled={isFeedbackSubmitting}
+                            >
+                              {isFeedbackSubmitting ? 'Sending...' : 'Send Feedback'}
+                            </Button>
+                          </div>
+                        </form>
                       </div>
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div >
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground py-16">
+                        <Puzzle className="w-12 h-12 opacity-20" />
+                        <div className="text-center space-y-1">
+                          {/* <p className="text-sm font-medium text-foreground/80">No active integrations</p>
+                        <p className="text-xs">Connect your favorite apps to do more.</p> */}
+                          <p className="text-sm font-medium text-foreground/80">Integrations Coming Soon</p>
+                          <p className="text-xs">Stay tuned.</p>
+                        </div>
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

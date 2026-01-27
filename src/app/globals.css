@@ -3,6 +3,7 @@
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant dropdawn-theme (&:is(.dropdawn-theme *));
 
 @theme inline {
   --color-background: var(--background);
@@ -117,12 +118,59 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+.dropdawn-theme {
+  --background: oklch(55.038% 0.22549 29.186 / 0); /* Transparent to let gradient show */
+  --foreground: oklch(0.985 0 0);
+  
+  /* Adjusted for neutral-800 look ~ #262626 */
+  --card: oklch(0.22 0 0); 
+  --card-foreground: oklch(0.985 0 0);
+  
+  --popover: oklch(0.22 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  
+  --secondary: oklch(0.32 0 0); /* Slightly lighter than card */
+  --secondary-foreground: oklch(0.985 0 0);
+  
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  
+  --destructive: oklch(0.704 0.191 22.216);
+  
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.556 0 0);
+  
+  /* Sidebar needs to match or complement */
+  --sidebar: oklch(0.18 0 0); /* Darker than card */
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 5%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  .dropdawn-theme body {
+    background-image: url('https://res.cloudinary.com/dnr4p6zlc/image/upload/c_limit,w_1920/f_auto/q_auto/v1682422456/ick3k4qslbdjgfxtexaf?_a=BAVAfVE40');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
 }
 
@@ -155,6 +203,37 @@
 
 .custom-scrollbar:hover {
   scrollbar-color: var(--muted-foreground) transparent;
+}
+
+/* No Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mask Gradient Utility */
+.mask-gradient-r {
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+/* Simple Auto Scroll Animation */
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-scroll {
+  display: flex;
+  width: max-content;
+  animation: scroll 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
 }
 
 /* Ensure code blocks scroll horizontally on mobile */
