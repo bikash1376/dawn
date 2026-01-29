@@ -37,10 +37,10 @@ export function AppearanceModal({ theme, setTheme }: AppearanceModalProps) {
                 </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-secondary/20 border border-border/40 text-xs text-muted-foreground leading-relaxed">
+            {/* <div className="p-4 rounded-xl bg-secondary/20 border border-border/40 text-xs text-muted-foreground leading-relaxed">
                 <Sparkles className="w-4 h-4 mb-2 opacity-50" />
                 More customization options including font scaling and accent colors will be available in future updates.
-            </div>
+            </div> */}
         </div>
     );
 }

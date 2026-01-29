@@ -31,7 +31,8 @@ import {
   User as UserIcon,
   LogOut,
   HourglassIcon,
-  MessageCircleQuestionMark
+  MessageCircleQuestionMark,
+  Heart
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import toolsData from '@/data/tools.json';
@@ -502,6 +503,10 @@ export default function ChatPage() {
                             <button onClick={() => { setActiveModal('help'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
                               <MessageCircleQuestionMark className="w-3.5 h-3.5 opacity-70" /> Help
                             </button>
+                            <div className="h-px bg-border/40 my-1" />
+                            <Link href="https://buymeacoffee.com/bikash1376v" target="_blank" className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <Heart className="w-3.5 h-3.5 opacity-70 text-pink-500" /> Support
+                            </Link>
                             <div className="h-px bg-border/40 my-1" />
                             <button onClick={() => {
                               supabase.auth.signOut().then(() => {
@@ -1008,7 +1013,7 @@ export default function ChatPage() {
                     ) : activeModal === 'appearance' ? (
                       <AppearanceModal theme={theme} setTheme={setTheme} />
                     ) : activeModal === 'settings' ? (
-                      <SettingsModal />
+                      <SettingsModal user={user} />
                     ) : activeModal === 'changelog' ? (
                       <ChangelogModal />
                     ) : activeModal === 'customize' ? (
