@@ -1,17 +1,62 @@
 [
   {
-    "date": "2024-05-20",
-    "title": "Version 1.2.0: Enhanced UI",
-    "description": "Revamped the user interface with a new dark mode, smoother animations, and better accessibility."
+    "date": "2026-01-29",
+    "title": "UI Simplification",
+    "description": "Moved settings and help forms from sidebar to account menu for a cleaner interface."
   },
   {
-    "date": "2024-05-15",
-    "title": "Version 1.1.5: Performance Boost",
-    "description": "Optimized database queries and improved load times by 40%."
+    "date": "2026-01-27",
+    "title": "Dropdawn Aesthetic",
+    "description": "Introduced the signature Dropdawn theme and animated example prompts."
   },
   {
-    "date": "2024-05-01",
-    "title": "Version 1.0.0: Initial Launch",
-    "description": "Released the first version of Dropdawn with core features including basic chat and tool integration."
+    "date": "2026-01-24",
+    "title": "Public Beta & Auth",
+    "description": "Added Supabase authentication and database. Opened for public access."
+  },
+  {
+    "date": "2026-01-22",
+    "title": "Theme System",
+    "description": "Added Light and Dark mode support."
+  },
+  {
+    "date": "2026-01-20",
+    "title": "Model Updates",
+    "description": "Updated system prompts and added Mistral AI support."
+  },
+  {
+    "date": "2026-01-18",
+    "title": "New Tools",
+    "description": "Launched Landing Page Generator and expanded tool suite."
+  },
+  {
+    "date": "2026-01-15",
+    "title": "UI Revamp",
+    "description": "Comprehensive user interface redesign."
+  },
+  {
+    "date": "2026-01-13",
+    "title": "v2.0: AI SDK",
+    "description": "Migrated to Vercel AI SDK."
+  },
+  {
+    "date": "2025-08-01",
+    "title": "Analytics",
+    "description": "Integrated Umami Analytics."
+  },
+  {
+    "date": "2025-07-27",
+    "title": "Tooling",
+    "description": "Added initial set of tools."
+  },
+  {
+    "date": "2025-07-26",
+    "title": "UI Updates",
+    "description": "Updated UI with new components and improved layout."
+  },
+  {
+    "date": "2025-07-24",
+    "title": "v1.0: Setup",
+    "description": "Initial project setup."
   }
 ]

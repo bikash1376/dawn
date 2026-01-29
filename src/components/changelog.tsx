@@ -13,7 +13,9 @@ export function ChangelogModal() {
                         </div>
                         <div className="flex-1 pt-1.5 space-y-1.5">
                             <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded border border-border/20">{item.date}</span>
+                                <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded border border-border/20">
+                                    {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                </span>
                             </div>
                             <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.title}</h4>
                             <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
