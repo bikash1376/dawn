@@ -77,6 +77,7 @@ export default function ChatPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Hydration fix
   useEffect(() => {
@@ -480,46 +481,58 @@ export default function ChatPage() {
 
                 <div className="mt-auto pt-4 border-t border-border/40 space-y-2">
                   {user ? (
-                    <div className="relative group">
-                      {/* Hover Menu */}
-                      <div className="absolute bottom-full left-0 w-full mb-2 bg-popover/80 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl overflow-hidden hidden group-hover:block transition-all p-1 z-50">
-                        <button onClick={() => setActiveModal('settings')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
-                          <UserCog className="w-3.5 h-3.5 opacity-70" /> Settings
-                        </button>
-                        <button onClick={() => setActiveModal('appearance')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
-                          <Palette className="w-3.5 h-3.5 opacity-70" /> Appearance
-                        </button>
-                        <button onClick={() => setActiveModal('customize')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
-                          <PaintBucket className="w-3.5 h-3.5 opacity-70" /> Customize
-                        </button>
-                        <button onClick={() => setActiveModal('changelog')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
-                          <History className="w-3.5 h-3.5 opacity-70" /> Changelog
-                        </button>
-                        <button onClick={() => setActiveModal('help')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
-                          <MessageCircleQuestionMark className="w-3.5 h-3.5 opacity-70" /> Help
-                        </button>
-                        <div className="h-px bg-border/40 my-1" />
-                        <button onClick={() => {
-                          supabase.auth.signOut().then(() => {
-                            setUser(null);
-                            setConversations([]);
-                            setActiveModal('auth');
-                          });
-                        }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-lg text-left transition-colors">
-                          <LogOut className="w-3.5 h-3.5 opacity-70" /> Sign Out
-                        </button>
-                      </div>
+                    <div className="relative">
+                      {/* Click Menu */}
+                      {isUserMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                          <div className="absolute bottom-full left-0 w-full mb-2 bg-popover/80 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl overflow-hidden p-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                            <button onClick={() => { setActiveModal('settings'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <UserCog className="w-3.5 h-3.5 opacity-70" /> Settings
+                            </button>
+                            <button onClick={() => { setActiveModal('appearance'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <Palette className="w-3.5 h-3.5 opacity-70" /> Appearance
+                            </button>
+                            <button onClick={() => { setActiveModal('customize'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <PaintBucket className="w-3.5 h-3.5 opacity-70" /> Customize
+                            </button>
+                            <button onClick={() => { setActiveModal('changelog'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <History className="w-3.5 h-3.5 opacity-70" /> Changelog
+                            </button>
+                            <button onClick={() => { setActiveModal('help'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                              <MessageCircleQuestionMark className="w-3.5 h-3.5 opacity-70" /> Help
+                            </button>
+                            <div className="h-px bg-border/40 my-1" />
+                            <button onClick={() => {
+                              supabase.auth.signOut().then(() => {
+                                setUser(null);
+                                setConversations([]);
+                                setActiveModal('auth');
+                                setIsUserMenuOpen(false);
+                              });
+                            }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-lg text-left transition-colors">
+                              <LogOut className="w-3.5 h-3.5 opacity-70" /> Sign Out
+                            </button>
+                          </div>
+                        </>
+                      )}
 
-                      <div className="flex items-center gap-3 px-2 py-1 cursor-pointer hover:bg-secondary/50 rounded-lg transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold uppercase ring-2 ring-transparent group-hover:ring-border/40 transition-all">
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 px-2 py-1 cursor-pointer hover:bg-secondary/50 rounded-lg transition-colors",
+                          isUserMenuOpen && "bg-secondary/50"
+                        )}
+                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold uppercase ring-2 ring-transparent transition-all">
                           {user.email?.slice(0, 2)}
                         </div>
 
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-[12px] font-medium truncate group-hover:text-primary transition-colors">{user.user_metadata?.full_name || 'User'}</span>
+                          <span className="text-[12px] font-medium truncate">{user.user_metadata?.full_name || 'User'}</span>
                           <span className="text-[10px] text-muted-foreground uppercase">Free Plan</span>
                         </div>
-                        <Settings className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Settings className={cn("w-3.5 h-3.5 text-muted-foreground transition-opacity", isUserMenuOpen ? "opacity-100" : "opacity-0")} />
                       </div>
                     </div>
                   ) : (
