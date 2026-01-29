@@ -10,13 +10,14 @@ export function CustomizeModal() {
             <div className="space-y-2">
                 <h3 className="text-lg font-medium">Deep Customization</h3>
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                    Soon you'll be able to tweak every aspect of the UI, including layout presets, font families, and custom seed colors.
+                    {/* Soon you'll be able to tweak every aspect of the UI, including layout presets, font families, and custom seed colors. */}
+                    Coming soon.
                 </p>
             </div>
-            <div className="flex justify-center gap-3 opacity-50 pointer-events-none grayscale">
+            {/* <div className="flex justify-center gap-3 opacity-50 pointer-events-none grayscale">
                 <Button size="sm" variant="outline" className="gap-2"><Layout className="w-3 h-3" /> Layouts</Button>
                 <Button size="sm" variant="outline" className="gap-2"><Type className="w-3 h-3" /> Typography</Button>
-            </div>
+            </div> */}
         </div>
     );
 }
