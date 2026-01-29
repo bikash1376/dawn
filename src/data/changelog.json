@@ -1,0 +1,17 @@
+[
+  {
+    "date": "2024-05-20",
+    "title": "Version 1.2.0: Enhanced UI",
+    "description": "Revamped the user interface with a new dark mode, smoother animations, and better accessibility."
+  },
+  {
+    "date": "2024-05-15",
+    "title": "Version 1.1.5: Performance Boost",
+    "description": "Optimized database queries and improved load times by 40%."
+  },
+  {
+    "date": "2024-05-01",
+    "title": "Version 1.0.0: Initial Launch",
+    "description": "Released the first version of Dropdawn with core features including basic chat and tool integration."
+  }
+]

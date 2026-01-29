@@ -55,6 +55,12 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthModal } from '@/components/auth-modal';
 import { signout, deleteConversation } from '@/app/auth/actions';
 import { uploadImageAction } from '@/app/actions';
+import { SettingsModal } from '@/components/settings';
+import { AppearanceModal } from '@/components/appearance';
+import { ChangelogModal } from '@/components/changelog';
+import { HelpModal } from '@/components/help';
+import { CustomizeModal } from '@/components/customize';
+import { Palette, History, UserCog, PaintBucket } from 'lucide-react';
 
 const MODELS = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
@@ -77,7 +83,7 @@ export default function ChatPage() {
     setIsMounted(true);
   }, []);
 
-  const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | 'help' | null>(null);
+  const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | 'help' | 'appearance' | 'changelog' | 'customize' | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system' | 'dropdawn-theme'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
@@ -469,45 +475,52 @@ export default function ChatPage() {
                       <Puzzle className="w-3.5 h-3.5" />
                       Integrations
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-3 h-9 text-[13px] font-medium text-muted-foreground hover:text-foreground"
-                      onClick={() => setActiveModal('settings')}
-                    >
-                      <Settings className="w-3.5 h-3.5" />
-                      Settings
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-3 h-9 text-[13px] font-medium text-muted-foreground hover:text-foreground"
-                      onClick={() => setActiveModal('help')}
-                    >
-                      <MessageCircleQuestionMark className="w-3.5 h-3.5" />
-                      Help
-                    </Button>
                   </div>
                 </ScrollArea>
 
                 <div className="mt-auto pt-4 border-t border-border/40 space-y-2">
                   {user ? (
-                    <div className="flex items-center gap-3 px-2 py-1">
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold uppercase">
-                        {user.email?.slice(0, 2)}
+                    <div className="relative group">
+                      {/* Hover Menu */}
+                      <div className="absolute bottom-full left-0 w-full mb-2 bg-popover/80 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl overflow-hidden hidden group-hover:block transition-all p-1 z-50">
+                        <button onClick={() => setActiveModal('settings')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                          <UserCog className="w-3.5 h-3.5 opacity-70" /> Settings
+                        </button>
+                        <button onClick={() => setActiveModal('appearance')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                          <Palette className="w-3.5 h-3.5 opacity-70" /> Appearance
+                        </button>
+                        <button onClick={() => setActiveModal('customize')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                          <PaintBucket className="w-3.5 h-3.5 opacity-70" /> Customize
+                        </button>
+                        <button onClick={() => setActiveModal('changelog')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                          <History className="w-3.5 h-3.5 opacity-70" /> Changelog
+                        </button>
+                        <button onClick={() => setActiveModal('help')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/50 rounded-lg text-left transition-colors">
+                          <MessageCircleQuestionMark className="w-3.5 h-3.5 opacity-70" /> Help
+                        </button>
+                        <div className="h-px bg-border/40 my-1" />
+                        <button onClick={() => {
+                          supabase.auth.signOut().then(() => {
+                            setUser(null);
+                            setConversations([]);
+                            setActiveModal('auth');
+                          });
+                        }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-lg text-left transition-colors">
+                          <LogOut className="w-3.5 h-3.5 opacity-70" /> Sign Out
+                        </button>
                       </div>
 
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-[12px] font-medium truncate">{user.user_metadata?.full_name || 'User'}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">Free</span>
+                      <div className="flex items-center gap-3 px-2 py-1 cursor-pointer hover:bg-secondary/50 rounded-lg transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold uppercase ring-2 ring-transparent group-hover:ring-border/40 transition-all">
+                          {user.email?.slice(0, 2)}
+                        </div>
+
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-[12px] font-medium truncate group-hover:text-primary transition-colors">{user.user_metadata?.full_name || 'User'}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">Free Plan</span>
+                        </div>
+                        <Settings className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-destructive cursor-pointer" onClick={() => {
-                        supabase.auth.signOut().then(() => {
-                          setUser(null);
-                          setConversations([]);
-                          setActiveModal('auth');
-                        });
-                      }}>
-                        <LogOut className="w-3.5 h-3.5 " />
-                      </Button>
                     </div>
                   ) : (
                     <Button
@@ -519,15 +532,6 @@ export default function ChatPage() {
                       Sign In / Sign Up
                     </Button>
                   )}
-
-                  {/* <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3 h-9 text-[13px] font-medium text-primary hover:text-primary/90 bg-primary/20"
-                    onClick={() => setActiveModal('upgrade')}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    UPGRADE
-                  </Button> */}
                 </div>
               </div>
             </motion.aside>
@@ -954,8 +958,11 @@ export default function ChatPage() {
                     {activeModal === 'tools' && <Wrench className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'integrations' && <Puzzle className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'settings' && <Settings className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'appearance' && <Palette className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'upgrade' && <Sparkles className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'help' && <MessageCircleQuestionMark className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'changelog' && <History className="w-4 h-4 text-muted-foreground" />}
+                    {activeModal === 'customize' && <PaintBucket className="w-4 h-4 text-muted-foreground" />}
                     {activeModal}
                   </h3>
                   <Button variant="ghost" size="icon" onClick={() => setActiveModal(null)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors">
@@ -985,49 +992,14 @@ export default function ChatPage() {
                           </div>
                         ))}
                       </div>
+                    ) : activeModal === 'appearance' ? (
+                      <AppearanceModal theme={theme} setTheme={setTheme} />
                     ) : activeModal === 'settings' ? (
-                      <div className="space-y-8">
-                        <div className="space-y-4">
-                          <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Appearance</label>
-                          <div className="grid grid-cols-3 gap-3">
-                            {[
-                              { id: 'light', name: 'Light', icon: Sun },
-                              { id: 'dark', name: 'Dark', icon: Moon },
-                              { id: 'system', name: 'System', icon: Monitor },
-                              { id: 'dropdawn-theme', name: 'Dropdawn', icon: Sparkles },
-                            ].map((item) => (
-                              <Button
-                                key={item.id}
-                                variant={'outline'}
-                                className={cn(
-                                  "flex flex-col items-center gap-2 h-20 border-border/40 transition-all",
-                                  theme === item.id
-                                    ? "bg-foreground text-background hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
-                                    : "bg-transparent dark:bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50 hover:border-border"
-                                )}
-                                onClick={() => setTheme(item.id as any)}
-                              >
-                                <item.icon className="w-4 h-4" />
-                                <span className="text-[10px] font-bold uppercase">{item.name}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        {/* <div className="pt-6 border-t border-border/40 space-y-4">
-                        <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Data Management</label>
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/40">
-                          <span className="text-sm font-medium text-foreground">Clear Conversations</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearChat}
-                            className="text-destructive hover:text-destructive/90 h-8 px-4 text-xs font-bold uppercase hover:bg-destructive/10 rounded-lg transition-colors"
-                          >
-                            Delete All
-                          </Button>
-                        </div>
-                      </div> */}
-                      </div>
+                      <SettingsModal />
+                    ) : activeModal === 'changelog' ? (
+                      <ChangelogModal />
+                    ) : activeModal === 'customize' ? (
+                      <CustomizeModal />
                     ) : activeModal === 'upgrade' ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
                         <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary/20 to-purple-500/20 flex items-center justify-center mb-2 ring-1 ring-border/20">
@@ -1042,73 +1014,7 @@ export default function ChatPage() {
                         <Button className="mt-4 bg-foreground text-background hover:bg-foreground/90 font-medium px-8 rounded-full" onClick={() => setActiveModal(null)}>Get Notified</Button>
                       </div>
                     ) : activeModal === 'help' ? (
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-foreground">Found a Problem?</h4>
-                          <p className="text-xs text-muted-foreground">Let us know so we can improve Dropdawn.</p>
-                        </div>
-                        <form className="space-y-4" onSubmit={async (e) => {
-                          e.preventDefault();
-                          setIsFeedbackSubmitting(true);
-                          const form = e.currentTarget;
-                          const formData = new FormData(form);
-
-                          try {
-                            const response = await fetch("https://formspree.io/f/xzdrkqyg", {
-                              method: "POST",
-                              body: formData,
-                              headers: {
-                                'Accept': 'application/json'
-                              }
-                            });
-
-                            if (response.ok) {
-                              alert('Thank you for your feedback!');
-                              form.reset();
-                              setActiveModal(null);
-                            } else {
-                              alert('Oops! There was a problem submitting your feedback.');
-                            }
-                          } catch (error) {
-                            alert('Oops! There was a problem submitting your feedback.');
-                          } finally {
-                            setIsFeedbackSubmitting(false);
-                          }
-                        }}>
-                          <div className="space-y-2">
-                            <label htmlFor="name" className="text-xs font-bold uppercase text-muted-foreground">Name</label>
-                            <Input
-                              id="name"
-                              name="name"
-                              placeholder="Anonymous"
-                              defaultValue="Anonymous"
-                              className="bg-secondary/50 text-foreground rounded-lg"
-                              disabled={isFeedbackSubmitting}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="message" className="text-xs font-bold uppercase text-muted-foreground">Message <span className="text-destructive">*</span></label>
-                            <TextareaAutosize
-                              id="message"
-                              name="message"
-                              required
-                              minRows={3}
-                              placeholder="Describe the issue or feedback..."
-                              className="w-full bg-secondary/50 border border-border/40 text-foreground rounded-lg p-3 text-sm focus:outline-none  focus:ring-primary/50 resize-none disabled:opacity-50"
-                              disabled={isFeedbackSubmitting}
-                            />
-                          </div>
-                          <div className="pt-2 flex justify-end">
-                            <Button
-                              type="submit"
-                              className="bg-foreground text-background hover:bg-foreground/90 font-medium text-xs h-9 px-6 rounded-lg disabled:opacity-70"
-                              disabled={isFeedbackSubmitting}
-                            >
-                              {isFeedbackSubmitting ? 'Sending...' : 'Send Feedback'}
-                            </Button>
-                          </div>
-                        </form>
-                      </div>
+                      <HelpModal onClose={() => setActiveModal(null)} />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground py-16">
                         <Puzzle className="w-12 h-12 opacity-20" />
