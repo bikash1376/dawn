@@ -243,3 +243,19 @@
   max-width: 100%;
   white-space: pre; /* Ensure code doesn't wrap weirdly if we want scroll */
 }
+
+/* Cursor pointer on all clickable elements */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="option"],
+[role="menuitem"],
+a[href],
+label[for],
+summary,
+select {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}

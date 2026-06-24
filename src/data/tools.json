@@ -20,6 +20,22 @@
     "description": "Generate beautifully designed invoices for your business."
   },
   {
+    "name": "PowerPoint Generator",
+    "description": "Create text-based presentations with design templates and export as .pptx."
+  },
+  {
+    "name": "Stats & Charts",
+    "description": "Build interactive bar, line, area, and pie charts you can hover and export."
+  },
+  {
+    "name": "Currency Converter",
+    "description": "Convert between currencies using live exchange rates."
+  },
+  {
+    "name": "Dictionary",
+    "description": "Look up definitions, parts of speech, and examples for English words."
+  },
+  {
     "name": "Screenshot",
     "description": "Take a screenshot of a given URL."
   },
@@ -29,7 +45,7 @@
   },
   {
     "name": "Landing Page Generator",
-    "description": "Generate and deploy a landing page to Netlify. Can also update existing sites."
+    "description": "Generate and deploy a static landing page (HTML/CSS/JS) to Netlify."
   },
   {
     "name": "Delete Landing Page",

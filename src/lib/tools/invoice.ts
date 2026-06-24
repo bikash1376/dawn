@@ -69,7 +69,10 @@ export const invoiceGenerator = tool({
                 message: 'Invoice generated successfully',
                 invoiceNumber,
                 grandTotal: `${currency} ${grandTotal.toFixed(2)}`,
-                dataUri: pdfBase64
+                dataUri: pdfBase64,
+                // The download UI is rendered automatically from `dataUri`. The model
+                // must NOT print the data URI or any base64 text in its reply.
+                instructions: 'The invoice is ready and a download button is already shown to the user. Reply with a single short confirmation sentence. Do NOT output the data URI, base64, or any file content.'
             };
         } catch (error) {
             return { error: 'Failed to generate invoice' };

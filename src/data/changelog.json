@@ -1,5 +1,30 @@
 [
   {
+    "date": "2026-06-24",
+    "title": "PowerPoint & Charts",
+    "description": "New tools: text-based PowerPoint (.pptx) generation with design templates and slide previews, plus interactive stats charts (bar/line/area/pie) with hover and PNG export."
+  },
+  {
+    "date": "2026-06-24",
+    "title": "More Free Tools + Command Palette",
+    "description": "Added currency conversion and an English dictionary. Type ':' in the chat box to browse tools and insert example prompts."
+  },
+  {
+    "date": "2026-06-24",
+    "title": "Static Sites & Frontend Skill",
+    "description": "Website generation is now static-only (HTML/CSS/JS, no backend) and follows a built-in frontend design guide. Image generation is not supported; the assistant lists what it can do instead."
+  },
+  {
+    "date": "2026-06-24",
+    "title": "Models & UX Polish",
+    "description": "Refreshed model lineup (Mistral default, Claude Haiku available), added a Stop button, cursor pointers on clickable items, and removed the Integrations panel."
+  },
+  {
+    "date": "2026-06-24",
+    "title": "Reliability Fixes",
+    "description": "Fixed Netlify sites serving raw HTML, stopped generated files leaking as blob text, and surfaced clearer streaming errors."
+  },
+  {
     "date": "2026-01-29",
     "title": "UI Simplification",
     "description": "Moved settings and help forms from sidebar to account menu for a cleaner interface."

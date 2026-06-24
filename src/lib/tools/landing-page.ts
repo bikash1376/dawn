@@ -52,7 +52,7 @@ async function resolveSiteId(token: string, identifier: string): Promise<string 
 }
 
 export const staticSiteGenerator = tool({
-    description: 'Generate and deploy a STATIC landing page or site to Netlify (HTML/CSS/JS). Use "fullStackAppGenerator" for apps with backend logic.',
+    description: 'Generate and deploy a STATIC landing page or site to Netlify (HTML/CSS/JS only — no backend or server-side logic).',
     parameters: z.object({
         html: z.string().describe('The full HTML content of the landing page, including <head> and <body>.'),
         css: z.string().optional().describe('The CSS styles for the landing page.'),
@@ -114,16 +114,33 @@ export const staticSiteGenerator = tool({
 
             const zipContent = await zip.generateAsync({ type: "nodebuffer" });
 
-            let endpoint = "https://api.netlify.com/api/v1/sites";
-            let method = "POST";
+            // For NEW sites, create an empty site first, then deploy to its /deploys
+            // endpoint. Posting a zip directly to /sites (combined create+deploy)
+            // skips Netlify's MIME pipeline, which serves index.html as text/plain
+            // (raw source instead of a rendered page).
+            if (!targetSiteId) {
+                const createResp = await fetch("https://api.netlify.com/api/v1/sites", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(projectName ? { name: projectName } : {}),
+                });
 
-            if (targetSiteId) {
-                // Update existing site
-                endpoint = `https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys`;
+                if (!createResp.ok) {
+                    const text = await createResp.text();
+                    return { error: `Failed to create Netlify site: ${createResp.status} - ${text}` };
+                }
+
+                const newSite = await createResp.json();
+                targetSiteId = newSite.id;
             }
 
+            const endpoint = `https://api.netlify.com/api/v1/sites/${targetSiteId}/deploys`;
+
             let response = await fetch(endpoint, {
-                method: method,
+                method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/zip",

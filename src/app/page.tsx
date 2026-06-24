@@ -5,6 +5,7 @@ import type { Message } from 'ai';
 import { useState, useRef, useEffect } from 'react';
 import {
   Send,
+  Square,
   Plus,
   MessageSquare,
   PanelLeft,
@@ -16,7 +17,6 @@ import {
   Receipt,
   Lock,
   Wrench,
-  Puzzle,
   Settings,
   Moon,
   Sun,
@@ -26,6 +26,10 @@ import {
   Camera,
   Briefcase,
   Rocket,
+  Presentation,
+  BarChart3,
+  DollarSign,
+  BookOpen,
   ExternalLink,
   Trash,
   User as UserIcon,
@@ -36,7 +40,8 @@ import {
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import toolsData from '@/data/tools.json';
-import integrationsData from '@/data/integrations.json';
+import { ChartResult } from '@/components/chart-result';
+import { PptxResult } from '@/components/pptx-result';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -63,15 +68,40 @@ import { HelpModal } from '@/components/help';
 import { CustomizeModal } from '@/components/customize';
 import { Palette, History, UserCog, PaintBucket } from 'lucide-react';
 
+// Strip any leaked data URIs / long base64 blobs so they never render as raw
+// "blob text" (e.g. when a model echoes a generated PDF's data URI into its reply).
+const sanitizeContent = (content: string) => {
+  if (!content) return content;
+  return content
+    // data:...;base64,xxxx  (markdown links, img, or bare)
+    .replace(/data:[a-zA-Z0-9/+.-]+;base64,[A-Za-z0-9+/=\s]+/g, '[generated file — use the download button above]')
+    // stray very long base64 runs without the data: prefix
+    .replace(/[A-Za-z0-9+/]{300,}={0,2}/g, '[…]')
+    .trim();
+};
+
+// Slash-style command palette: typing ":" lists these; selecting inserts the example.
+const TOOL_COMMANDS = [
+  { name: 'Calculate', example: 'Calculate a 15% tip on $87.50 split between 3 people' },
+  { name: 'Weather', example: "What's the weather in Tokyo right now?" },
+  { name: 'Web Search', example: 'Search the web for the latest AI news this week' },
+  { name: 'PDF', example: 'Create a PDF cover letter for a frontend developer role' },
+  { name: 'Invoice', example: 'Generate invoice INV-2026-007 for $1200 of design work for client jane@acme.com' },
+  { name: 'PowerPoint', example: 'Make a 5-slide deck on the benefits of remote work using the corporate theme' },
+  { name: 'Stats Chart', example: 'Make a bar chart of monthly sales: Jan 120, Feb 150, Mar 90, Apr 200' },
+  { name: 'Currency', example: 'Convert 250 USD to EUR' },
+  { name: 'Dictionary', example: 'Define the word "ephemeral"' },
+  { name: 'Screenshot', example: 'Take a screenshot of https://stripe.com' },
+  { name: 'Portfolio', example: 'Generate a portfolio for GitHub user bikash1376' },
+  { name: 'Landing Page', example: 'Build and deploy a landing page for a coffee shop called Brew Haven' },
+];
+
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', locked: false },
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', provider: 'Google', locked: true },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', locked: true },
-  { id: 'mistral-small', name: 'Mistral Small', provider: 'Mistral', locked: true },
+  { id: 'mistral-small', name: 'Mistral Small', provider: 'Mistral', locked: false },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', locked: true },
   { id: 'command-light', name: 'Cohere Command Light', provider: 'Cohere', locked: true },
   { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', name: 'Llama 3.3 70B (DeepInfra)', provider: 'DeepInfra', locked: true },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', locked: true },
-  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', locked: true },
 ];
 
 export default function ChatPage() {
@@ -85,7 +115,7 @@ export default function ChatPage() {
     setIsMounted(true);
   }, []);
 
-  const [activeModal, setActiveModal] = useState<'tools' | 'integrations' | 'settings' | 'upgrade' | 'auth' | 'help' | 'appearance' | 'changelog' | 'customize' | null>(null);
+  const [activeModal, setActiveModal] = useState<'tools' | 'settings' | 'upgrade' | 'auth' | 'help' | 'appearance' | 'changelog' | 'customize' | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system' | 'dropdawn-theme'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
@@ -176,7 +206,7 @@ export default function ChatPage() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append, setInput } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, append, setInput, stop, reload } = useChat({
     api: '/api/chat',
     body: {
       model: selectedModel.id,
@@ -334,6 +364,17 @@ export default function ChatPage() {
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
+  // ":" command palette state
+  const commandQuery = input.startsWith(':') ? input.slice(1).toLowerCase() : null;
+  const filteredCommands = commandQuery !== null
+    ? TOOL_COMMANDS.filter((c) => c.name.toLowerCase().includes(commandQuery.trim()))
+    : [];
+  const showCommands = commandQuery !== null && filteredCommands.length > 0;
+
+  const applyCommand = (example: string) => {
+    setInput(example);
+  };
+
   // Custom submit wrapper to capture input
   const onFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -361,9 +402,15 @@ export default function ChatPage() {
         case 'webSearch': return 'Searching the web...';
         case 'pdfGenerator': return 'Generating PDF...';
         case 'invoiceGenerator': return 'Designing invoice...';
+        case 'pptxGenerator': return 'Building presentation...';
+        case 'statsChart': return 'Plotting chart...';
+        case 'currencyConvert': return 'Converting currency...';
+        case 'dictionary': return 'Looking up word...';
         case 'screenshot': return 'Taking screenshot...';
         case 'portfolio': return 'Generating portfolio...';
-        case 'landingPageGenerator': return 'Deploying landing page...';
+        case 'staticSiteGenerator': return 'Deploying site...';
+        case 'updateSiteDomain': return 'Updating domain...';
+        case 'rollbackSite': return 'Rolling back...';
         case 'deleteLandingPage': return 'Deleting site...';
         default: return `Using ${ongoingTool.toolName}...`;
       }
@@ -468,14 +515,6 @@ export default function ChatPage() {
                     >
                       <Wrench className="w-3.5 h-3.5" />
                       Tools
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-3 h-9 text-[13px] font-medium text-muted-foreground hover:text-foreground"
-                      onClick={() => setActiveModal('integrations')}
-                    >
-                      <Puzzle className="w-3.5 h-3.5" />
-                      Integrations
                     </Button>
                   </div>
                 </ScrollArea>
@@ -634,9 +673,15 @@ export default function ChatPage() {
                             case 'webSearch': return <Search className="w-3 h-3" />;
                             case 'pdfGenerator': return <FileText className="w-3 h-3" />;
                             case 'invoiceGenerator': return <Receipt className="w-3 h-3" />;
+                            case 'pptxGenerator': return <Presentation className="w-3 h-3" />;
+                            case 'statsChart': return <BarChart3 className="w-3 h-3" />;
+                            case 'currencyConvert': return <DollarSign className="w-3 h-3" />;
+                            case 'dictionary': return <BookOpen className="w-3 h-3" />;
                             case 'screenshot': return <Camera className="w-3 h-3" />;
                             case 'portfolio': return <Briefcase className="w-3 h-3" />;
-                            case 'landingPageGenerator': return <Rocket className="w-3 h-3" />;
+                            case 'staticSiteGenerator':
+                            case 'updateSiteDomain':
+                            case 'rollbackSite': return <Rocket className="w-3 h-3" />;
                             case 'deleteLandingPage': return <Trash className="w-3 h-3" />;
                             default: return <Calculator className="w-3 h-3" />;
                           }
@@ -690,6 +735,33 @@ export default function ChatPage() {
                                       </Button>
                                     )}
                                   </div>
+                                ) : toolName === 'pptxGenerator' ? (
+                                  <PptxResult result={result} />
+                                ) : toolName === 'statsChart' ? (
+                                  result.isChart ? <ChartResult result={result} /> : <div className="text-destructive text-sm">{result.error}</div>
+                                ) : toolName === 'currencyConvert' ? (
+                                  result.error ? (
+                                    <div className="text-destructive text-sm">{result.error}</div>
+                                  ) : (
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="text-lg font-bold">{result.converted} {result.to}</span>
+                                      <span className="text-xs text-muted-foreground">({result.amount} {result.from} · rate {result.rate})</span>
+                                    </div>
+                                  )
+                                ) : toolName === 'dictionary' ? (
+                                  result.error ? (
+                                    <div className="text-destructive text-sm">{result.error}</div>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      <div className="font-bold">{result.word} <span className="text-xs font-normal text-muted-foreground">{result.phonetic}</span></div>
+                                      {result.meanings?.map((m: any, i: number) => (
+                                        <div key={i} className="text-sm">
+                                          <span className="italic text-muted-foreground">{m.partOfSpeech}</span> — {m.definition}
+                                          {m.example && <div className="text-xs text-muted-foreground mt-0.5">e.g. "{m.example}"</div>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
                                 ) : toolName === 'screenshot' ? (
                                   <div className="relative rounded-lg overflow-hidden border border-border/40 bg-secondary/20">
                                     {result.image ? (
@@ -710,7 +782,7 @@ export default function ChatPage() {
                                       {result.twitter && <div>Twitter: <a href={result.twitter} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">{result.twitter}</a></div>}
                                     </div>
                                   </details>
-                                ) : toolName === 'landingPageGenerator' ? (
+                                ) : (toolName === 'staticSiteGenerator' || toolName === 'updateSiteDomain' || toolName === 'rollbackSite') ? (
                                   <div className="space-y-2">
                                     <div className="font-medium text-green-500">{result.message}</div>
                                     {result.siteUrl && (
@@ -764,7 +836,7 @@ export default function ChatPage() {
                           theme === 'dropdawn-theme' && "prose-headings:text-white prose-p:text-white/90 prose-strong:text-white prose-code:text-white/90"
                         )}>
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {m.content}
+                            {sanitizeContent(m.content)}
                           </ReactMarkdown>
                         </div>
                       )}
@@ -848,6 +920,25 @@ export default function ChatPage() {
                 ? "w-full bg-black/40 border-white/10 focus-within:border-white/20 focus-within:ring-white/10"
                 : "max-w-2xl bg-secondary/20 border-border/30 focus-within:border-foreground/20 focus-within:ring-foreground/5"
             )}>
+              {showCommands && (
+                <div className={cn(
+                  "absolute bottom-full left-0 right-0 mb-2 max-h-64 overflow-y-auto rounded-xl border shadow-2xl backdrop-blur-md p-1.5 z-30 custom-scrollbar",
+                  theme === 'dropdawn-theme' ? "bg-black/80 border-white/10" : "bg-popover border-border/40"
+                )}>
+                  <div className="px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">Tools — pick one to insert an example</div>
+                  {filteredCommands.map((c) => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => applyCommand(c.example)}
+                      className="w-full text-left rounded-lg px-2 py-1.5 hover:bg-secondary/60 transition-colors flex flex-col gap-0.5"
+                    >
+                      <span className="text-[13px] font-medium">{c.name}</span>
+                      <span className="text-[11px] text-muted-foreground line-clamp-1">{c.example}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <form
                 onSubmit={onFormSubmit}
                 className="flex flex-col"
@@ -858,6 +949,12 @@ export default function ChatPage() {
                   onClick={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
                   onFocus={() => (!user && !isTemporaryMode) && setActiveModal('auth')}
                   onKeyDown={(e) => {
+                    // When the ":" command palette is open, Enter inserts the top match's example.
+                    if (e.key === 'Enter' && !e.shiftKey && showCommands) {
+                      e.preventDefault();
+                      applyCommand(filteredCommands[0].example);
+                      return;
+                    }
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       if (!user && !isTemporaryMode) {
@@ -914,17 +1011,29 @@ export default function ChatPage() {
                     </SelectContent>
                   </Select>
 
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={!input.trim() || isLoading || !!selectedModel.locked || (!user && !isTemporaryMode) || (error?.message?.includes('Rate limit') ?? false) || (isTemporaryMode && temporaryCount >= 3)}
-                    className={cn(
-                      "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
-                      (input.trim() && !selectedModel.locked && (user || isTemporaryMode)) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
-                    )}
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </Button>
+                  {isLoading ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={() => stop()}
+                      title="Stop generating"
+                      className="rounded-md h-7 w-7 transition-all duration-200 shadow-sm bg-foreground text-background hover:opacity-90"
+                    >
+                      <Square className="w-3 h-3 fill-current" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={!input.trim() || !!selectedModel.locked || (!user && !isTemporaryMode) || (error?.message?.includes('Rate limit') ?? false) || (isTemporaryMode && temporaryCount >= 3)}
+                      className={cn(
+                        "rounded-md h-7 w-7 transition-all duration-200 shadow-sm",
+                        (input.trim() && !selectedModel.locked && (user || isTemporaryMode)) ? "bg-foreground text-background hover:opacity-90" : "bg-transparent text-muted-foreground/30"
+                      )}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               </form>
             </div>
@@ -974,8 +1083,8 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between p-6 border-b border-border/40 bg-muted/30">
                   <h3 className="text-xl font-light tracking-tight text-foreground flex items-center gap-2 font-serif uppercase">
                     {activeModal === 'tools' && <Wrench className="w-4 h-4 text-muted-foreground" />}
-                    {activeModal === 'integrations' && <Puzzle className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'settings' && <Settings className="w-4 h-4 text-muted-foreground" />}
+                    {/* integrations removed */}
                     {activeModal === 'appearance' && <Palette className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'upgrade' && <Sparkles className="w-4 h-4 text-muted-foreground" />}
                     {activeModal === 'help' && <MessageCircleQuestionMark className="w-4 h-4 text-muted-foreground" />}
@@ -1033,17 +1142,7 @@ export default function ChatPage() {
                       </div>
                     ) : activeModal === 'help' ? (
                       <HelpModal onClose={() => setActiveModal(null)} />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground py-16">
-                        <Puzzle className="w-12 h-12 opacity-20" />
-                        <div className="text-center space-y-1">
-                          {/* <p className="text-sm font-medium text-foreground/80">No active integrations</p>
-                        <p className="text-xs">Connect your favorite apps to do more.</p> */}
-                          <p className="text-sm font-medium text-foreground/80">Integrations Coming Soon</p>
-                          <p className="text-xs">Stay tuned.</p>
-                        </div>
-                      </div>
-                    )}
+                    ) : null}
                   </ScrollArea>
                 </div>
               </motion.div>

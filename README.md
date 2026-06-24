@@ -4,15 +4,37 @@
 
 # Dropdawn
 
-AI-powered chat workspace featuring some integrated tools like web search, PDF generation, and more. Built for speed and flexibility.
+AI-powered chat workspace with a suite of built-in tools — web search, document/presentation/chart generation, static site deployment, and more. Built for speed and flexibility.
 
 ## Tech Stack
 
-- **Framework**: Next.js 14+, TypeScript
+- **Framework**: Next.js 16, TypeScript
 - **Styling**: Tailwind CSS, Framer Motion, Shadcn UI
-- **AI**: Vercel AI SDK (Google, Mistral, Cohere, OpenAI)
-- **Backend & Auth**: Supabase
-- **Tools**: Tavily (Search), Cloudinary (Images)
+- **AI**: Vercel AI SDK (Anthropic, Mistral, Google, Cohere, DeepInfra, OpenAI)
+- **Backend & Auth**: Supabase (Postgres + Auth)
+- **Tools/Libraries**: Tavily (search), Cloudinary (image uploads), jsPDF (PDF/invoice), pptxgenjs (PowerPoint), Recharts (charts), Netlify API (static site deploy)
+
+## Capabilities
+
+Dropdawn is a chat assistant with the following tools. Type `:` in the chat box to browse them and insert an example prompt.
+
+| Tool | What it does |
+| --- | --- |
+| Calculate | Arithmetic and quick math |
+| Weather | Current weather for any location |
+| Web Search | Live web results via Tavily |
+| PDF Generator | Downloadable text PDFs |
+| Invoice Generator | Downloadable invoice PDFs |
+| PowerPoint Generator | Text-based `.pptx` decks with design templates + slide preview |
+| Stats & Charts | Interactive bar/line/area/pie charts with hover + PNG export |
+| Currency Converter | Live exchange-rate conversion (no key) |
+| Dictionary | English word definitions (no key) |
+| Screenshot | Capture a screenshot of a URL |
+| Portfolio | Generate a portfolio URL from a GitHub username |
+| Landing Page Generator | Generate & deploy a **static** (HTML/CSS/JS) site to Netlify |
+| Manage Site | Update subdomain, roll back, or delete a deployed site |
+
+> **Not supported:** image generation, and any backend/server-side site features — site generation is static-only.
 
 ## Prerequisites
 
@@ -51,29 +73,31 @@ pnpm install
 
 ### 3. Configure Environment Variables
 
-Create a copy of the environment file to set up your keys.
-
-1. Create a file named `.env` in the root directory.
-2. Add the following variables (you will need API keys from the respective providers):
+Create a file named `.env.local` in the root directory and add the variables below
+(you only need keys for the providers/tools you intend to use). The default chat
+model is **Mistral**, so `MISTRAL_API_KEY` is the minimum to start chatting.
 
 ```bash
-# Supabase Configuration
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# AI Model Providers
+# AI Model Providers (add the ones you use)
+MISTRAL_API_KEY=your_mistral_key                 # default model
+ANTHROPIC_API_KEY=your_anthropic_key             # for Claude (currently locked in UI)
 GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
-MISTRAL_API_KEY=your_mistral_key
 COHERE_API_KEY=your_cohere_key
-OPENAI_API_KEY=your_openai_key
+DEEPINFRA_API_KEY=your_deepinfra_key
 
 # External Tools
-TAVILY_API_KEY=your_tavily_key
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+TAVILY_API_KEY=your_tavily_key                   # web search
+NETLIFY_ACCESS_TOKEN=your_netlify_token          # static site deploys
+CLOUDINARYCLOUDNAME=your_cloud_name              # image uploads (screenshots)
 CLOUDINARY_API_KEY=your_cloudinary_key
 CLOUDINARY_API_SECRET=your_cloudinary_secret
 ```
+
+> Currency conversion and dictionary tools require **no** API key.
 
 ### 4. Run the Development Server
 

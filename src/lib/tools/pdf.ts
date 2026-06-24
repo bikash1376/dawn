@@ -23,7 +23,10 @@ export const pdfGenerator = tool({
                 message: 'PDF generated successfully',
                 filename,
                 dataUri: pdfBase64,
-                instructions: 'The PDF has been generated as a data URI. You can provide this to the user to view or download.'
+                // IMPORTANT: instructions for the model. The download UI is rendered
+                // automatically from `dataUri`. The model must NOT print the data URI
+                // or any base64 text in its reply — just confirm in one short sentence.
+                instructions: 'The PDF is ready and a download button is already shown to the user. Reply with a single short confirmation sentence. Do NOT output the data URI, base64, or any file content.'
             };
         } catch (error) {
             return { error: 'Failed to generate PDF' };
